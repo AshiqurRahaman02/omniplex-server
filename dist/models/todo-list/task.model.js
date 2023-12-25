@@ -24,16 +24,50 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const userSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    userType: {
+const taskSchema = new mongoose_1.Schema({
+    name: {
         type: String,
-        enum: ["user", "creator", "admin"],
-        default: "user",
+        required: true,
     },
-    tag: { type: String, required: true },
-});
-const UserModel = mongoose_1.default.model("User", userSchema);
-exports.default = UserModel;
+    details: {
+        type: String,
+    },
+    createdBy: {
+        creatorId: {
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "user",
+            required: true,
+        },
+        creatorName: {
+            type: String,
+            required: true,
+        },
+    },
+    assignedTo: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "user" }],
+    done: {
+        isDone: {
+            type: Boolean,
+            default: false,
+        },
+        doneBy: {
+            userId: {
+                type: mongoose_1.default.Schema.Types.ObjectId,
+                ref: "user",
+            },
+            userName: {
+                type: String,
+            },
+        },
+        time: {
+            type: String,
+        },
+    },
+    deadline: {
+        type: String,
+    },
+    lastResetTime: {
+        type: String,
+    },
+}, { timestamps: true });
+const TaskModel = mongoose_1.default.model("Task", taskSchema);
+exports.default = TaskModel;
