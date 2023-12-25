@@ -18,12 +18,8 @@ const userSchema: Schema = new Schema({
 		default: "user",
 	},
 	tag: { type: String, required: true },
-	bookmarks: [
-		
-	],
 });
 
 const UserModel = mongoose.model<IUser>("User", userSchema);
-
 
 export default UserModel;

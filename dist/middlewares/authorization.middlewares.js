@@ -22,17 +22,21 @@ const authorizedUser = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         // Assuming the authenticated user's ID is available on req.user.id
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
         if (!req.user) {
-            return res.status(401).json({ isError: true, message: 'Unauthorized' });
+            return res
+                .status(401)
+                .json({ isError: true, message: "Unauthorized" });
         }
         // Check if the user is either a "creator" or an "admin"
-        if (req.user.userType !== 'creator' && req.user.userType !== 'admin') {
-            return res.status(403).json({ isError: true, message: 'Unauthorized' });
+        if (req.user.userType !== "creator" && req.user.userType !== "admin") {
+            return res
+                .status(403)
+                .json({ isError: true, message: "Unauthorized" });
         }
         // If the user is authorized, proceed to the next middleware or route handler
         next();
     }
     catch (error) {
-        res.status(500).json({ isError: true, message: 'Internal server error' });
+        res.status(500).json({ isError: true, message: "Internal server error" });
     }
 });
 exports.authorizedUser = authorizedUser;
