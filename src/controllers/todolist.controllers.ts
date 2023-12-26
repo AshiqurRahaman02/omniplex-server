@@ -7,6 +7,7 @@ import TaskModel from "../models/todo-list/task.model";
 export const getTodoList = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
+		console.log(userId);
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -14,16 +15,14 @@ export const getTodoList = async (req: Request, res: Response) => {
 			});
 		}
 
-		let todolist = await TodoListModel.findOne({ userId }).populate(
-			"workList projectList hobbies travelList"
-		);
+		let todolist = await TodoListModel.findOne({ userId }).populate("userId").populate("workList")
+		  .exec()
 
 		if (!todolist) {
 			todolist = new TodoListModel({
 				userId,
 				workList: [],
 				projectList: [],
-				personalList: [],
 				hobbiesList: [],
 				travelList: [],
 			});
@@ -73,7 +72,9 @@ export const addWorkListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		res.status(201).json({ isError: false, team: savedTeam });
+		const updatedTodolist = await TodoListModel.findOne({ userId }).populate("userId").populate("workList");
+
+		res.status(201).json({ isError: false, todoList:updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });

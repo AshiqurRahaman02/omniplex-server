@@ -20,7 +20,7 @@ const GoalSchema: Schema = new Schema(
 		createdBy: {
 			creatorId: {
 				type: mongoose.Schema.Types.ObjectId,
-				ref: "user",
+				ref: "User",
 				required: true,
 			},
 			creatorName: {
@@ -32,7 +32,7 @@ const GoalSchema: Schema = new Schema(
 			{
 				taskId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "task",
+					ref: "Task",
 					required: true,
 				},
 			},

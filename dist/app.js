@@ -22,5 +22,5 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 // Routers
 app.use("/user", user_route_1.default);
 app.use("/mail", omniplex_mail_route_1.default);
-app.use("todolist", authentication_middlewares_1.verifyToken, todolist_route_1.default);
+app.use("/todolist", authentication_middlewares_1.verifyToken, todolist_route_1.default);
 exports.default = app;

@@ -27,13 +27,13 @@ const mongoose_1 = __importStar(require("mongoose"));
 const todolistSchema = new mongoose_1.Schema({
     userId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
-        ref: "user",
+        ref: "User",
     },
-    workList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
-    projectList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
-    personalList: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" },
-    hobbiesList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
-    travelList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
+    workList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
+    projectList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
+    personalList: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" },
+    hobbiesList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
+    travelList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
 });
 const TodoListModel = mongoose_1.default.model("Todolist", todolistSchema);
 exports.default = TodoListModel;

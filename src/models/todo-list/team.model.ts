@@ -35,7 +35,7 @@ const teamSchema: Schema = new Schema(
 		createdBy: {
 			creatorId: {
 				type: mongoose.Schema.Types.ObjectId,
-				ref: "user",
+				ref: "User",
 				required: true,
 			},
 			creatorName: {
@@ -44,7 +44,7 @@ const teamSchema: Schema = new Schema(
 			},
 		},
 		habits: {
-			habitsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "task" }],
+			habitsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
 			tracks: [{}],
 		},
 		financialsPlans: { budget: String, spends: [{
@@ -55,7 +55,7 @@ const teamSchema: Schema = new Schema(
 			{
 				userId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "user",
+					ref: "User",
 				},
 				userName: {
 					type: String,
@@ -66,7 +66,7 @@ const teamSchema: Schema = new Schema(
 			{
 				taskId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "task",
+					ref: "Task",
 				},
 			},
 		],
@@ -74,7 +74,7 @@ const teamSchema: Schema = new Schema(
 			{
 				taskId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "task",
+					ref: "Task",
 				},
 			},
 		],
@@ -82,7 +82,7 @@ const teamSchema: Schema = new Schema(
 			{
 				taskId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "task",
+					ref: "Task",
 				},
 			},
 		],
@@ -90,7 +90,7 @@ const teamSchema: Schema = new Schema(
 			{
 				goalId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "goal",
+					ref: "Goal",
 				},
 			},
 		],

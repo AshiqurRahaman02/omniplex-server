@@ -40,7 +40,7 @@ const taskSchema = new mongoose_1.Schema({
     createdBy: {
         creatorId: {
             type: mongoose_1.default.Schema.Types.ObjectId,
-            ref: "user",
+            ref: "User",
             required: true,
         },
         creatorName: {
@@ -48,7 +48,7 @@ const taskSchema = new mongoose_1.Schema({
             required: true,
         },
     },
-    assignedTo: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "user" }],
+    assignedTo: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "User" }],
     done: {
         isDone: {
             type: Boolean,
@@ -57,7 +57,7 @@ const taskSchema = new mongoose_1.Schema({
         doneBy: {
             userId: {
                 type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "user",
+                ref: "User",
             },
             userName: {
                 type: String,
