@@ -35,7 +35,7 @@ const GoalSchema = new mongoose_1.Schema({
     createdBy: {
         creatorId: {
             type: mongoose_1.default.Schema.Types.ObjectId,
-            ref: "user",
+            ref: "User",
             required: true,
         },
         creatorName: {
@@ -47,7 +47,7 @@ const GoalSchema = new mongoose_1.Schema({
         {
             taskId: {
                 type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "task",
+                ref: "Task",
                 required: true,
             },
         },

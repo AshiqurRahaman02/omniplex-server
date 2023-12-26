@@ -24,6 +24,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/user", userRouter)
 app.use("/mail", mailRouter)
 
-app.use("todolist",verifyToken, todolistRouter)
+app.use("/todolist",verifyToken, todolistRouter)
 
 export default app;

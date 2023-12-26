@@ -31,7 +31,7 @@ const taskSchema: Schema = new Schema(
 		createdBy: {
 			creatorId: {
 				type: mongoose.Schema.Types.ObjectId,
-				ref: "user",
+				ref: "User",
 				required: true,
 			},
 			creatorName: {
@@ -39,7 +39,7 @@ const taskSchema: Schema = new Schema(
 				required: true,
 			},
 		},
-		assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
+		assignedTo: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 		done: {
 			isDone: {
 				type: Boolean,
@@ -48,7 +48,7 @@ const taskSchema: Schema = new Schema(
 			doneBy: {
 				userId: {
 					type: mongoose.Schema.Types.ObjectId,
-					ref: "user",
+					ref: "User",
 				},
 				userName: {
 					type: String,
