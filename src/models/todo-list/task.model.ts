@@ -4,6 +4,7 @@ export interface ITask extends Document {
 	name: string;
 	details: string;
 	createdBy: { creatorId: string; creatorName: string };
+	taskType:  "dailytask" | "reminder" | "task" | "step" | "habit";
 	assignedTo: [string];
 	done: {
 		isDone: boolean;
@@ -21,6 +22,11 @@ const taskSchema: Schema = new Schema(
 		},
 		details: {
 			type: String,
+		},
+		taskType:{
+			type: String,
+			enum: ["dailytask", "reminder", "task", "step", "habit"],
+			default: "task",
 		},
 		createdBy: {
 			creatorId: {
@@ -54,10 +60,7 @@ const taskSchema: Schema = new Schema(
 		},
 		deadline: {
 			type: String,
-		},
-		lastResetTime: {
-			type: String,
-		},
+		}
 	},
 	{ timestamps: true }
 );

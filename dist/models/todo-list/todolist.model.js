@@ -31,7 +31,7 @@ const todolistSchema = new mongoose_1.Schema({
     },
     workList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
     projectList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
-    personalList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
+    personalList: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" },
     hobbiesList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
     travelList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "team" }],
 });

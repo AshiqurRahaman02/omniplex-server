@@ -11,6 +11,11 @@ export interface ITeam extends Document {
 	reminders: [{ taskId: string }];
 	tasks: [{ taskId: string }];
 	goals: [{ goalId: string }];
+	habits: { habitsId: [string]; tracks: [{}] };
+	financialsPlans: { budget: string; spends: [{
+		date: string;
+		allSpends: [{ amount: string, amountType: string, usedFor: string, time: string}]
+	}] };
 }
 
 const teamSchema: Schema = new Schema(
@@ -23,7 +28,7 @@ const teamSchema: Schema = new Schema(
 			type: String,
 			required: true,
 		},
-		password: {type: String},
+		password: { type: String },
 		details: {
 			type: String,
 		},
@@ -38,6 +43,14 @@ const teamSchema: Schema = new Schema(
 				required: true,
 			},
 		},
+		habits: {
+			habitsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "task" }],
+			tracks: [{}],
+		},
+		financialsPlans: { budget: String, spends: [{
+			date: String,
+			allSpends: [{ amount: String, amountType: String, usedFor: String, time: String}]
+		}]  },
 		allMembers: [
 			{
 				userId: {
@@ -47,7 +60,7 @@ const teamSchema: Schema = new Schema(
 				userName: {
 					type: String,
 				},
-			}
+			},
 		],
 		dailyTasks: [
 			{

@@ -130,27 +130,28 @@ export const addPersonalkListTeam = async (req: Request, res: Response) => {
 			});
 		}
 
-		const { isPublic, name, password, details } = req.body;
+		const { name, password, details } = req.body;
 
 		// Create a new team
 		const newTeam = new TeamModel({
-			isPublic,
+			isPublic: false,
 			name,
 			password,
 			details,
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
-			allMembers: [],
 			dailyTasks: [],
 			reminders: [],
 			tasks: [],
 			goals: [],
+			habits: { habitsId: [], tracks: [{}] },
+			financialsPlans: { budget: "", spends: [{}] },
 		});
 		const savedTeam = await newTeam.save();
 
 		const todoList = await TodoListModel.findOne({ userId });
 
 		if (todoList) {
-			todoList.personalList.push(savedTeam._id);
+			todoList.personalList = savedTeam._id;
 
 			await todoList.save();
 		}
@@ -254,7 +255,7 @@ export const addDailyTask = async (req: Request, res: Response) => {
 			});
 		}
 
-		const { name, details, deadline, lastResetTime } = req.body;
+		const { name, details, deadline } = req.body;
 		const teamId = req.params.teamId;
 
 		// Create a new task
@@ -263,7 +264,7 @@ export const addDailyTask = async (req: Request, res: Response) => {
 			details,
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			deadline,
-			lastResetTime,
+			taskType: "dailytask",
 		});
 
 		const savedTask = await newTask.save();
@@ -301,6 +302,7 @@ export const addReminder = async (req: Request, res: Response) => {
 			details,
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			deadline,
+			taskType: "reminder",
 		});
 
 		const savedTask = await newTask.save();
@@ -339,6 +341,7 @@ export const addTask = async (req: Request, res: Response) => {
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			assignedTo: [],
 			deadline,
+			taskType: "task",
 		});
 
 		const savedTask = await newTask.save();
@@ -377,6 +380,7 @@ export const addGoal = async (req: Request, res: Response) => {
 					details: step.details,
 					createdBy: { creatorId: userId, creatorName: req.user?.name },
 					deadline: step.deadline,
+					taskType: "step",
 				});
 				return await newTask.save();
 			})
@@ -407,15 +411,181 @@ export const addGoal = async (req: Request, res: Response) => {
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
 	}
 };
+export const addSteps = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		const goalId = req.params.goalId;
+		const { steps } = req.body;
+
+		const goal = await GoalModel.findById(goalId);
+
+		if (!goal) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Goal not found" });
+		}
+
+		// Create tasks for the steps
+		const createdTasks = await Promise.all(
+			steps.map(async (step: any) => {
+				const newTask = new TaskModel({
+					name: step.name,
+					details: step.details,
+					createdBy: { creatorId: userId, creatorName: req.user?.name },
+					deadline: step.deadline,
+					taskType: "step",
+				});
+				return await newTask.save();
+			})
+		);
+
+		goal.steps.push(...createdTasks.map((task) => ({ taskId: task._id })));
+
+		await goal.save();
+
+		res.status(201).json({
+			isError: false,
+			message: "Steps added to the goal successfully",
+			goal,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+
+export const addHabit = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		const teamId = req.params.teamId;
+		const { habits } = req.body;
+
+		// Find the team by ID
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Team not found" });
+		}
+
+		// Create tasks for habits
+		const createdTasks = await Promise.all(
+			habits.map(async (habit: any) => {
+				const newTask = new TaskModel({
+					name: habit.name,
+					details: habit.details,
+					createdBy: { creatorId: userId, creatorName: req.user?.name },
+					deadline: habit.deadline,
+					taskType: "habit",
+				});
+				return await newTask.save();
+			})
+		);
+
+		// Add the habit tasks to the team's habits collection
+		team.habits.habitsId.push(...createdTasks.map((task) => task._id));
+
+		// Save the updated team
+		await team.save();
+
+		res.status(201).json({
+			isError: false,
+			message: "Habits added to the team successfully",
+			team,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+export const updateBudget = async (req: Request, res: Response) => {
+	try {
+		const teamId = req.params.teamId;
+		const { budget } = req.body;
+
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Team not found" });
+		}
+
+		// Update the budget in financial plans
+		team.financialsPlans.budget = budget;
+
+		await team.save();
+
+		res.status(200).json({
+			isError: false,
+			message: "Budget updated successfully",
+			team,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+export const addSpends = async (req: Request, res: Response) => {
+	try {
+		const teamId = req.params.teamId;
+		const { spends } = req.body;
+
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Team not found" });
+		}
+
+		const todayDate = new Date().toISOString().split("T")[0];
+
+		const lastSpend = team.financialsPlans.spends.slice(-1)[0];
+
+		if (lastSpend && lastSpend.date === todayDate) {
+			lastSpend.allSpends.push(...spends);
+		} else {
+			team.financialsPlans.spends.push({
+				date: todayDate,
+				allSpends: spends,
+			});
+		}
+
+		// Save the updated team
+		await team.save();
+
+		res.status(200).json({
+			isError: false,
+			message: "Spends added successfully",
+			team,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
 
 export const resetDailyTasks = async () => {
-	const currentTime = new Date();
-	const midnight = new Date(currentTime);
-	midnight.setHours(0, 0, 0, 0);
-
-	// Find tasks that need to be reset
+	// Find daily tasks that need to be reset
 	const tasksToReset = await TaskModel.find({
-		lastResetTime: { $lt: midnight.toISOString() },
+		taskType: "dailytask",
+		"done.isDone": true,
 	});
 
 	// Reset tasks
@@ -423,7 +593,6 @@ export const resetDailyTasks = async () => {
 		task.done.isDone = false;
 		task.done.doneBy = {};
 		task.done.time = "";
-		task.lastResetTime = currentTime.toISOString();
 		await task.save();
 	});
 
