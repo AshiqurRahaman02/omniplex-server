@@ -18,10 +18,22 @@ todolistRouter.post("/travel/add-team", todolist_controllers_1.addTravelListTeam
 todolistRouter.post("/daily-task/createTask/:teamId", todolist_controllers_1.addDailyTask);
 todolistRouter.post("/reminder/createTask/:teamId", todolist_controllers_1.addReminder);
 todolistRouter.post("/task/createTask/:teamId", todolist_controllers_1.addTask);
+todolistRouter.post("/goal/createTask/:teamId", todolist_controllers_1.addGoal);
+todolistRouter.post("/goal/addSteps/:goalId", todolist_controllers_1.addSteps);
+// Route to add habits to a team by Id
+todolistRouter.post("/habit/createHabit/:teamId", todolist_controllers_1.addHabit);
+// Route to update spends in financial plans
+todolistRouter.put("/financial/addSpend/:teamId", todolist_controllers_1.addSpends);
 // Route to update a team by ID
 todolistRouter.put("/team/update/:teamId", todolist_controllers_1.updateTeam);
 // Route to update a task by ID
 todolistRouter.put("/task/update/:taskId", todolist_controllers_1.updateTask);
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", todolist_controllers_1.updateGoal);
+// Route to delete a team by ID
+todolistRouter.put("/team/delete/:teamId", todolist_controllers_1.deleteTeam);
+// Route to delete a goal by ID
+todolistRouter.put("/goal/delete/:goalId", todolist_controllers_1.deleteGoal);
+// Route to delete a task by ID
+todolistRouter.put("/task/delete/:taskId", todolist_controllers_1.deleteTask);
 exports.default = todolistRouter;

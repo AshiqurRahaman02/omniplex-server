@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
+exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
 const todolist_model_1 = __importDefault(require("../models/todo-list/todolist.model"));
 const team_model_1 = __importDefault(require("../models/todo-list/team.model"));
 const goal_model_1 = __importDefault(require("../models/todo-list/goal.model"));
@@ -133,24 +133,25 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 message: "Internal Server Error",
             });
         }
-        const { isPublic, name, password, details } = req.body;
+        const { name, password, details } = req.body;
         // Create a new team
         const newTeam = new team_model_1.default({
-            isPublic,
+            isPublic: false,
             name,
             password,
             details,
             createdBy: { creatorId: userId, creatorName: (_g = req.user) === null || _g === void 0 ? void 0 : _g.name },
-            allMembers: [],
             dailyTasks: [],
             reminders: [],
             tasks: [],
             goals: [],
+            habits: { habitsId: [], tracks: [{}] },
+            financialsPlans: { budget: "", spends: [{}] },
         });
         const savedTeam = yield newTeam.save();
         const todoList = yield todolist_model_1.default.findOne({ userId });
         if (todoList) {
-            todoList.personalList.push(savedTeam._id);
+            todoList.personalList = savedTeam._id;
             yield todoList.save();
         }
         res.status(201).json({ isError: false, team: savedTeam });
@@ -247,7 +248,7 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 message: "Internal Server Error",
             });
         }
-        const { name, details, deadline, lastResetTime } = req.body;
+        const { name, details, deadline } = req.body;
         const teamId = req.params.teamId;
         // Create a new task
         const newTask = new task_model_1.default({
@@ -255,7 +256,7 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             details,
             createdBy: { creatorId: userId, creatorName: (_o = req.user) === null || _o === void 0 ? void 0 : _o.name },
             deadline,
-            lastResetTime,
+            taskType: "dailytask",
         });
         const savedTask = yield newTask.save();
         const team = yield team_model_1.default.findById(teamId);
@@ -289,6 +290,7 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             details,
             createdBy: { creatorId: userId, creatorName: (_q = req.user) === null || _q === void 0 ? void 0 : _q.name },
             deadline,
+            taskType: "reminder",
         });
         const savedTask = yield newTask.save();
         const team = yield team_model_1.default.findById(teamId);
@@ -323,6 +325,7 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             createdBy: { creatorId: userId, creatorName: (_s = req.user) === null || _s === void 0 ? void 0 : _s.name },
             assignedTo: [],
             deadline,
+            taskType: "task",
         });
         const savedTask = yield newTask.save();
         const team = yield team_model_1.default.findById(teamId);
@@ -357,6 +360,7 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 details: step.details,
                 createdBy: { creatorId: userId, creatorName: (_u = req.user) === null || _u === void 0 ? void 0 : _u.name },
                 deadline: step.deadline,
+                taskType: "step",
             });
             return yield newTask.save();
         })));
@@ -382,20 +386,168 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.addGoal = addGoal;
+const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _v;
+    try {
+        const userId = (_v = req.user) === null || _v === void 0 ? void 0 : _v._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const goalId = req.params.goalId;
+        const { steps } = req.body;
+        const goal = yield goal_model_1.default.findById(goalId);
+        if (!goal) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Goal not found" });
+        }
+        // Create tasks for the steps
+        const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
+            var _w;
+            const newTask = new task_model_1.default({
+                name: step.name,
+                details: step.details,
+                createdBy: { creatorId: userId, creatorName: (_w = req.user) === null || _w === void 0 ? void 0 : _w.name },
+                deadline: step.deadline,
+                taskType: "step",
+            });
+            return yield newTask.save();
+        })));
+        goal.steps.push(...createdTasks.map((task) => ({ taskId: task._id })));
+        yield goal.save();
+        res.status(201).json({
+            isError: false,
+            message: "Steps added to the goal successfully",
+            goal,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.addSteps = addSteps;
+const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _x;
+    try {
+        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const teamId = req.params.teamId;
+        const { habits } = req.body;
+        // Find the team by ID
+        const team = yield team_model_1.default.findById(teamId);
+        if (!team) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Team not found" });
+        }
+        // Create tasks for habits
+        const createdTasks = yield Promise.all(habits.map((habit) => __awaiter(void 0, void 0, void 0, function* () {
+            var _y;
+            const newTask = new task_model_1.default({
+                name: habit.name,
+                details: habit.details,
+                createdBy: { creatorId: userId, creatorName: (_y = req.user) === null || _y === void 0 ? void 0 : _y.name },
+                deadline: habit.deadline,
+                taskType: "habit",
+            });
+            return yield newTask.save();
+        })));
+        // Add the habit tasks to the team's habits collection
+        team.habits.habitsId.push(...createdTasks.map((task) => task._id));
+        // Save the updated team
+        yield team.save();
+        res.status(201).json({
+            isError: false,
+            message: "Habits added to the team successfully",
+            team,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.addHabit = addHabit;
+const updateBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const teamId = req.params.teamId;
+        const { budget } = req.body;
+        const team = yield team_model_1.default.findById(teamId);
+        if (!team) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Team not found" });
+        }
+        // Update the budget in financial plans
+        team.financialsPlans.budget = budget;
+        yield team.save();
+        res.status(200).json({
+            isError: false,
+            message: "Budget updated successfully",
+            team,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.updateBudget = updateBudget;
+const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const teamId = req.params.teamId;
+        const { spends } = req.body;
+        const team = yield team_model_1.default.findById(teamId);
+        if (!team) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Team not found" });
+        }
+        const todayDate = new Date().toISOString().split("T")[0];
+        const lastSpend = team.financialsPlans.spends.slice(-1)[0];
+        if (lastSpend && lastSpend.date === todayDate) {
+            lastSpend.allSpends.push(...spends);
+        }
+        else {
+            team.financialsPlans.spends.push({
+                date: todayDate,
+                allSpends: spends,
+            });
+        }
+        // Save the updated team
+        yield team.save();
+        res.status(200).json({
+            isError: false,
+            message: "Spends added successfully",
+            team,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.addSpends = addSpends;
 const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
-    const currentTime = new Date();
-    const midnight = new Date(currentTime);
-    midnight.setHours(0, 0, 0, 0);
-    // Find tasks that need to be reset
+    // Find daily tasks that need to be reset
     const tasksToReset = yield task_model_1.default.find({
-        lastResetTime: { $lt: midnight.toISOString() },
+        taskType: "dailytask",
+        "done.isDone": true,
     });
     // Reset tasks
     tasksToReset.forEach((task) => __awaiter(void 0, void 0, void 0, function* () {
         task.done.isDone = false;
         task.done.doneBy = {};
         task.done.time = "";
-        task.lastResetTime = currentTime.toISOString();
         yield task.save();
     }));
     console.log("Daily tasks reset successfully.");

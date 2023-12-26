@@ -32,6 +32,11 @@ const taskSchema = new mongoose_1.Schema({
     details: {
         type: String,
     },
+    taskType: {
+        type: String,
+        enum: ["dailytask", "reminder", "task", "step", "habit"],
+        default: "task",
+    },
     createdBy: {
         creatorId: {
             type: mongoose_1.default.Schema.Types.ObjectId,
@@ -64,10 +69,7 @@ const taskSchema = new mongoose_1.Schema({
     },
     deadline: {
         type: String,
-    },
-    lastResetTime: {
-        type: String,
-    },
+    }
 }, { timestamps: true });
 const TaskModel = mongoose_1.default.model("Task", taskSchema);
 exports.default = TaskModel;
