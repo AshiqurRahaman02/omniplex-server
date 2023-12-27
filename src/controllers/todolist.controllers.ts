@@ -4,10 +4,41 @@ import TeamModel from "../models/todo-list/team.model";
 import GoalModel from "../models/todo-list/goal.model";
 import TaskModel from "../models/todo-list/task.model";
 
+const getPopulatedTodoList =async (userId:string) => {
+	const todoList = await TodoListModel.findOne({ userId }).populate({
+		path: 'workList',
+		populate: {
+			path: 'dailyTasks reminders tasks',
+			model: 'Task', 
+		  },
+		  
+	  }).populate({
+		path: 'workList',
+		populate: {
+			path: 'goals',
+			model: 'Goal', 
+		  },
+		  
+	  }).populate({
+		path: 'workList',
+		populate: {
+			path: 'goals',
+			populate:{
+				path: "steps",
+				model: "Task"
+			}
+		  },
+		  
+	  })
+	  .exec();
+
+	  return todoList
+}
+
 export const getTodoList = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log(userId);
+		console.log("checking");
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -15,8 +46,7 @@ export const getTodoList = async (req: Request, res: Response) => {
 			});
 		}
 
-		let todolist = await TodoListModel.findOne({ userId }).populate("userId").populate("workList")
-		  .exec()
+		let todolist = await getPopulatedTodoList(userId)
 
 		if (!todolist) {
 			todolist = new TodoListModel({
@@ -72,7 +102,7 @@ export const addWorkListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		const updatedTodolist = await TodoListModel.findOne({ userId }).populate("userId").populate("workList");
+		const updatedTodolist = await getPopulatedTodoList(userId)
 
 		res.status(201).json({ isError: false, todoList:updatedTodolist });
 	} catch (error) {
@@ -278,7 +308,8 @@ export const addDailyTask = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		res.status(201).json({ isError: false, team });
+		const updatedTodolist = await getPopulatedTodoList(userId)
+		res.status(201).json({ isError: false, todoList:updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -316,7 +347,9 @@ export const addReminder = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		res.status(201).json({ isError: false, team });
+		const updatedTodolist = await getPopulatedTodoList(userId)
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -355,7 +388,9 @@ export const addTask = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		res.status(201).json({ isError: false, team });
+		const updatedTodolist = await getPopulatedTodoList(userId)
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -371,8 +406,12 @@ export const addGoal = async (req: Request, res: Response) => {
 			});
 		}
 
-		const { name, details, createdBy, steps, deadline } = req.body;
+		let { name, details,  steps, deadline, finalGoal } = req.body;
 		const teamId = req.params.teamId;
+
+		if(!steps){
+			steps = []
+		}
 
 		const createdTasks = await Promise.all(
 			steps.map(async (step: any) => {
@@ -391,9 +430,10 @@ export const addGoal = async (req: Request, res: Response) => {
 		const newGoal = new GoalModel({
 			name,
 			details,
-			createdBy,
+			createdBy:{ creatorId: userId, creatorName: req.user?.name },
 			steps: createdTasks.map((task) => ({ taskId: task._id })),
 			deadline,
+			finalGoal
 		});
 
 		const savedGoal = await newGoal.save();
@@ -406,7 +446,9 @@ export const addGoal = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		res.status(201).json({ isError: false, team });
+		const updatedTodolist = await getPopulatedTodoList(userId)
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -447,15 +489,13 @@ export const addSteps = async (req: Request, res: Response) => {
 			})
 		);
 
-		goal.steps.push(...createdTasks.map((task) => ({ taskId: task._id })));
+		goal.steps.push(...createdTasks.map((task) => (task)));
 
 		await goal.save();
 
-		res.status(201).json({
-			isError: false,
-			message: "Steps added to the goal successfully",
-			goal,
-		});
+		const updatedTodolist = await getPopulatedTodoList(userId)
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -698,7 +738,7 @@ export const deleteGoal = async (req: Request, res: Response) => {
 				.json({ isError: true, message: "Goal not found" });
 		}
 
-		const taskIdsToDelete = goal.steps.map((step) => step.taskId);
+		const taskIdsToDelete = goal.steps.map((step) => step);
 
 		// Delete the tasks associated with the goal's steps
 		await TaskModel.deleteMany({ _id: { $in: taskIdsToDelete } });
@@ -728,15 +768,15 @@ export const deleteTeam = async (req: Request, res: Response) => {
 		}
 
 		const taskIdsToDelete = [
-			...team.dailyTasks.map((task) => task.taskId),
-			...team.reminders.map((task) => task.taskId),
-			...team.tasks.map((task) => task.taskId),
+			...team.dailyTasks.map((task) => task),
+			...team.reminders.map((task) => task),
+			...team.tasks.map((task) => task),
 		];
 
 		// Delete the tasks associated with the team
 		await TaskModel.deleteMany({ _id: { $in: taskIdsToDelete } });
 
-		const goalIdsToDelete = team.goals.map((goal) => goal.goalId);
+		const goalIdsToDelete = team.goals.map((goal) => goal);
 
 		// Delete goals and associated tasks
 		await Promise.all(
@@ -744,7 +784,7 @@ export const deleteTeam = async (req: Request, res: Response) => {
 				const goal = await GoalModel.findById(goalId);
 
 				if (goal) {
-					const taskIdsInGoal = goal.steps.map((step) => step.taskId);
+					const taskIdsInGoal = goal.steps.map((step) => step);
 
 					await TaskModel.deleteMany({ _id: { $in: taskIdsInGoal } });
 

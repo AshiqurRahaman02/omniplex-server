@@ -4,7 +4,8 @@ export interface IGoal extends Document {
 	name: string;
 	details: string;
 	createdBy: { creatorId: string; creatorName: string };
-	steps: [{ taskId: string }];
+	steps: [string];
+	finalGoal: string
 	deadline: string;
 }
 
@@ -30,13 +31,15 @@ const GoalSchema: Schema = new Schema(
 		},
 		steps: [
 			{
-				taskId: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Task",
-					required: true,
-				},
-			},
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "Task",
+				required: true,
+			}
 		],
+		finalGoal:{
+			type: String,
+			required: true,
+		},
 		deadline: {
 			type: String,
 		},

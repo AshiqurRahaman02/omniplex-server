@@ -7,10 +7,10 @@ export interface ITeam extends Document {
 	details: string;
 	createdBy: { creatorId: string; creatorName: string };
 	allMembers: [{ userId: string; userName: string }];
-	dailyTasks: [{ taskId: string }];
-	reminders: [{ taskId: string }];
-	tasks: [{ taskId: string }];
-	goals: [{ goalId: string }];
+	dailyTasks: [string];
+	reminders: [string];
+	tasks: [string];
+	goals: [string];
 	habits: { habitsId: [string]; tracks: [{}] };
 	financialsPlans: { budget: string; spends: [{
 		date: string;
@@ -64,34 +64,26 @@ const teamSchema: Schema = new Schema(
 		],
 		dailyTasks: [
 			{
-				taskId: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Task",
-				},
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "Task",
 			},
 		],
 		reminders: [
 			{
-				taskId: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Task",
-				},
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "Task",
 			},
 		],
 		tasks: [
 			{
-				taskId: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Task",
-				},
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "Task",
 			},
 		],
 		goals: [
 			{
-				goalId: {
-					type: mongoose.Schema.Types.ObjectId,
-					ref: "Goal",
-				},
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "Goal",
 			},
 		],
 	},

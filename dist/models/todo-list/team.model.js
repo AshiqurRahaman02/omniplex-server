@@ -69,34 +69,26 @@ const teamSchema = new mongoose_1.Schema({
     ],
     dailyTasks: [
         {
-            taskId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "Task",
-            },
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "Task",
         },
     ],
     reminders: [
         {
-            taskId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "Task",
-            },
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "Task",
         },
     ],
     tasks: [
         {
-            taskId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "Task",
-            },
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "Task",
         },
     ],
     goals: [
         {
-            goalId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "Goal",
-            },
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "Goal",
         },
     ],
 }, { timestamps: true });
