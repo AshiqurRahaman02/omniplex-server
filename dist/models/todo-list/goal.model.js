@@ -45,13 +45,15 @@ const GoalSchema = new mongoose_1.Schema({
     },
     steps: [
         {
-            taskId: {
-                type: mongoose_1.default.Schema.Types.ObjectId,
-                ref: "Task",
-                required: true,
-            },
-        },
+            type: mongoose_1.default.Schema.Types.ObjectId,
+            ref: "Task",
+            required: true,
+        }
     ],
+    finalGoal: {
+        type: String,
+        required: true,
+    },
     deadline: {
         type: String,
     },
