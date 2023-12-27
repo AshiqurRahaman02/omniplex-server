@@ -663,6 +663,14 @@ export const updateTeam = async (req: Request, res: Response) => {
 };
 export const updateTask = async (req: Request, res: Response) => {
 	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
 		const taskId = req.params.taskId;
 		const updateData = req.body;
 
@@ -672,11 +680,8 @@ export const updateTask = async (req: Request, res: Response) => {
 			{ $set: updateData }
 		);
 
-		res.status(200).json({
-			isError: false,
-			message: "Task updated successfully",
-			updatedTask,
-		});
+		const updatedTodolist = await getPopulatedTodoList(userId)
+		res.status(201).json({ isError: false,message: "Task updated successfully", todoList:updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -704,8 +709,81 @@ export const updateGoal = async (req: Request, res: Response) => {
 	}
 };
 
+export const updateTaskDone =  async (req:Request, res:Response) => {
+	try {
+		const userId = req.user?._id;
+		const userName = req.user?.name
+		if (!userId ) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		if (!userName) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+	  const taskId = req.params.taskId;
+  
+	  const task = await TaskModel.findById(taskId);
+  
+	  if (!task) {
+		return res.status(404).json({ isError: true, message: 'Task not found' });
+	  }
+  
+	  // Check if the task is not done
+	  if (!task.done.isDone) {
+		// Update task as done
+		task.done.isDone = true;
+		task.done.doneBy = {
+		  userId: userId,
+		  userName: userName || "" ,
+		};
+		task.done.time = new Date().toISOString(); 
+  
+		await task.save();
+		
+		const updatedTodolist = await getPopulatedTodoList(userId)
+  
+		return res.status(200).json({ isError: false, message: 'Task marked as done', todoList:updatedTodolist });
+	  }
+  
+	  // If the task is already done, allow admin to update
+	  if (task.createdBy.creatorId.toString() === userId.toString()) {
+		task.done.isDone = false;
+		task.done.doneBy = {
+			userId: userId,
+			userName: userName || ""  ,
+		};
+		task.done.time = new Date().toISOString();
+  
+		await task.save();
+  
+		const updatedTodolist = await getPopulatedTodoList(userId)
+		return res.status(200).json({ isError: false, message: 'Task marked as not done', todoList: updatedTodolist });
+	  }
+	  
+	  return res.status(403).json({ isError: true, message: 'Permission denied to update task' });
+	} catch (error) {
+	  console.error('Error:', error);
+	  res.status(500).json({ isError: true, message: 'Internal Server Error' });
+	}
+  }
+
 export const deleteTask = async (req: Request, res: Response) => {
 	try {
+		const userId = req.user?._id;
+		console.log("checking");
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
 		const taskId = req.params.taskId;
 
 		// Delete the task by ID
@@ -717,10 +795,8 @@ export const deleteTask = async (req: Request, res: Response) => {
 				.json({ isError: true, message: "Task not found" });
 		}
 
-		res.status(200).json({
-			isError: false,
-			message: "Task deleted successfully",
-		});
+		const updatedTodolist = await getPopulatedTodoList(userId)
+		res.status(201).json({ isError: false,message: "Task deleted successfully", todoList:updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
