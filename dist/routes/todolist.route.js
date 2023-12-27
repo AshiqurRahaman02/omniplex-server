@@ -28,12 +28,14 @@ todolistRouter.put("/financial/addSpend/:teamId", todolist_controllers_1.addSpen
 todolistRouter.put("/team/update/:teamId", todolist_controllers_1.updateTeam);
 // Route to update a task by ID
 todolistRouter.put("/task/update/:taskId", todolist_controllers_1.updateTask);
+// Route to update done tasks by ID
+todolistRouter.put("/task/updateTaskDone/:taskId", todolist_controllers_1.updateTaskDone);
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", todolist_controllers_1.updateGoal);
 // Route to delete a team by ID
-todolistRouter.put("/team/delete/:teamId", todolist_controllers_1.deleteTeam);
+todolistRouter.delete("/team/delete/:teamId", todolist_controllers_1.deleteTeam);
 // Route to delete a goal by ID
-todolistRouter.put("/goal/delete/:goalId", todolist_controllers_1.deleteGoal);
+todolistRouter.delete("/goal/delete/:goalId", todolist_controllers_1.deleteGoal);
 // Route to delete a task by ID
-todolistRouter.put("/task/delete/:taskId", todolist_controllers_1.deleteTask);
+todolistRouter.delete("/task/delete/:taskId", todolist_controllers_1.deleteTask);
 exports.default = todolistRouter;

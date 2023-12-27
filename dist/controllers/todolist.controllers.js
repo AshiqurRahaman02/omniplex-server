@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
+exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
 const todolist_model_1 = __importDefault(require("../models/todo-list/todolist.model"));
 const team_model_1 = __importDefault(require("../models/todo-list/team.model"));
 const goal_model_1 = __importDefault(require("../models/todo-list/goal.model"));
@@ -604,16 +604,21 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _0;
     try {
+        const userId = (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
         const taskId = req.params.taskId;
         const updateData = req.body;
         // Update the task by ID
         const updatedTask = yield task_model_1.default.updateOne({ _id: taskId }, { $set: updateData });
-        res.status(200).json({
-            isError: false,
-            message: "Task updated successfully",
-            updatedTask,
-        });
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({ isError: false, message: "Task updated successfully", todoList: updatedTodolist });
     }
     catch (error) {
         console.error("Error:", error);
@@ -639,8 +644,72 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.updateGoal = updateGoal;
-const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _1, _2;
     try {
+        const userId = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
+        const userName = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.name;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        if (!userName) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const taskId = req.params.taskId;
+        const task = yield task_model_1.default.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ isError: true, message: 'Task not found' });
+        }
+        // Check if the task is not done
+        if (!task.done.isDone) {
+            // Update task as done
+            task.done.isDone = true;
+            task.done.doneBy = {
+                userId: userId,
+                userName: userName || "",
+            };
+            task.done.time = new Date().toISOString();
+            yield task.save();
+            const updatedTodolist = yield getPopulatedTodoList(userId);
+            return res.status(200).json({ isError: false, message: 'Task marked as done', todoList: updatedTodolist });
+        }
+        // If the task is already done, allow admin to update
+        if (task.createdBy.creatorId.toString() === userId.toString()) {
+            task.done.isDone = false;
+            task.done.doneBy = {
+                userId: userId,
+                userName: userName || "",
+            };
+            task.done.time = new Date().toISOString();
+            yield task.save();
+            const updatedTodolist = yield getPopulatedTodoList(userId);
+            return res.status(200).json({ isError: false, message: 'Task marked as not done', todoList: updatedTodolist });
+        }
+        return res.status(403).json({ isError: true, message: 'Permission denied to update task' });
+    }
+    catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ isError: true, message: 'Internal Server Error' });
+    }
+});
+exports.updateTaskDone = updateTaskDone;
+const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _3;
+    try {
+        const userId = (_3 = req.user) === null || _3 === void 0 ? void 0 : _3._id;
+        console.log("checking");
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
         const taskId = req.params.taskId;
         // Delete the task by ID
         const deletedTask = yield task_model_1.default.findByIdAndDelete(taskId);
@@ -649,10 +718,8 @@ const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 .status(404)
                 .json({ isError: true, message: "Task not found" });
         }
-        res.status(200).json({
-            isError: false,
-            message: "Task deleted successfully",
-        });
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({ isError: false, message: "Task deleted successfully", todoList: updatedTodolist });
     }
     catch (error) {
         console.error("Error:", error);

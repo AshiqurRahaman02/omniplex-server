@@ -19,6 +19,7 @@ import {
 	getTodoList,
 	updateGoal,
 	updateTask,
+	updateTaskDone,
 	updateTeam,
 } from "../controllers/todolist.controllers";
 
@@ -51,14 +52,16 @@ todolistRouter.put("/financial/addSpend/:teamId", addSpends)
 todolistRouter.put("/team/update/:teamId", updateTeam);
 // Route to update a task by ID
 todolistRouter.put("/task/update/:taskId", updateTask);
+// Route to update done tasks by ID
+todolistRouter.put("/task/updateTaskDone/:taskId", updateTaskDone)
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", updateGoal);
 
 // Route to delete a team by ID
-todolistRouter.put("/team/delete/:teamId", deleteTeam);
+todolistRouter.delete("/team/delete/:teamId", deleteTeam);
 // Route to delete a goal by ID
-todolistRouter.put("/goal/delete/:goalId", deleteGoal);
+todolistRouter.delete("/goal/delete/:goalId", deleteGoal);
 // Route to delete a task by ID
-todolistRouter.put("/task/delete/:taskId", deleteTask);
+todolistRouter.delete("/task/delete/:taskId", deleteTask);
 
 export default todolistRouter;
