@@ -34,6 +34,7 @@ const todolistSchema = new mongoose_1.Schema({
     personalList: { type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" },
     hobbiesList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
     travelList: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Team" }],
+    notifications: [{ heading: String, text: String, link: String, isRead: { type: Boolean, default: false }, time: String }]
 });
 const TodoListModel = mongoose_1.default.model("Todolist", todolistSchema);
 exports.default = TodoListModel;

@@ -5,6 +5,7 @@ import {
 	addGoal,
 	addHabit,
 	addHobbiesListTeam,
+	addMembers,
 	addPersonalkListTeam,
 	addProjectListTeam,
 	addReminder,
@@ -17,6 +18,7 @@ import {
 	deleteTask,
 	deleteTeam,
 	getTodoList,
+	joinTeam,
 	updateGoal,
 	updateTask,
 	updateTaskDone,
@@ -56,6 +58,11 @@ todolistRouter.put("/task/update/:taskId", updateTask);
 todolistRouter.put("/task/updateTaskDone/:taskId", updateTaskDone)
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", updateGoal);
+
+// Route to add members to a team
+todolistRouter.post('/team/addMembers/:teamId',addMembers)
+// Route to join a team
+todolistRouter.post('/team/joinTeam/:teamId',joinTeam)
 
 // Route to delete a team by ID
 todolistRouter.delete("/team/delete/:teamId", deleteTeam);

@@ -32,6 +32,10 @@ todolistRouter.put("/task/update/:taskId", todolist_controllers_1.updateTask);
 todolistRouter.put("/task/updateTaskDone/:taskId", todolist_controllers_1.updateTaskDone);
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", todolist_controllers_1.updateGoal);
+// Route to add members to a team
+todolistRouter.post('/team/addMembers/:teamId', todolist_controllers_1.addMembers);
+// Route to join a team
+todolistRouter.post('/team/joinTeam/:teamId', todolist_controllers_1.joinTeam);
 // Route to delete a team by ID
 todolistRouter.delete("/team/delete/:teamId", todolist_controllers_1.deleteTeam);
 // Route to delete a goal by ID
