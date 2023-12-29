@@ -9,6 +9,7 @@ export interface ITeam extends Document {
 	createdBy: { creatorId: string; creatorName: string };
 	allMembers: [{ userId: string; userName: string }];
 	invitations: [string];
+	updates: [{ userId: string; userName: string; message:string; updateType: string; time:string }];
 	dailyTasks: [string];
 	reminders: [string];
 	tasks: [string];
@@ -94,6 +95,7 @@ const teamSchema: Schema = new Schema(
 			},
 		],
 		invitations: [String],
+		updates: [{ userId: String, userName: String,message:String, updateType: String, time:String }],
 		dailyTasks: [
 			{
 				type: mongoose.Schema.Types.ObjectId,

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.joinTeam = exports.addMembers = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
+exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.addMessage = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.markNotificationAsRead = exports.joinTeam = exports.addMembers = exports.deleteNote = exports.updateNote = exports.addNote = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
 const todolist_model_1 = __importDefault(require("../models/todo-list/todolist.model"));
 const team_model_1 = __importDefault(require("../models/todo-list/team.model"));
 const goal_model_1 = __importDefault(require("../models/todo-list/goal.model"));
@@ -67,6 +67,7 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 hobbiesList: [],
                 travelList: [],
                 notifications: [],
+                notes: [],
             });
             yield todolist.save();
         }
@@ -276,10 +277,136 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.addTravelListTeam = addTravelListTeam;
-const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const addNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _m;
     try {
         const userId = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const { title, note } = req.body;
+        let todolist = yield todolist_model_1.default.findOne({ userId });
+        if (!todolist) {
+            todolist = new todolist_model_1.default({
+                userId,
+                workList: [],
+                projectList: [],
+                hobbiesList: [],
+                travelList: [],
+                notifications: [],
+                notes: [{ title, note }],
+            });
+        }
+        else {
+            todolist.notes.push({ title, note });
+        }
+        yield todolist.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({
+            isError: false,
+            message: "Note added successfully",
+            todoList: updatedTodolist,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({
+            isError: true,
+            message: "Internal Server Error",
+        });
+    }
+});
+exports.addNote = addNote;
+const updateNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _o;
+    try {
+        const userId = (_o = req.user) === null || _o === void 0 ? void 0 : _o._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const { notes } = req.body;
+        const todolist = yield todolist_model_1.default.findOne({ userId });
+        if (!todolist) {
+            return res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        todolist.notes = notes;
+        yield todolist.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({
+            isError: false,
+            message: "Note updated successfully",
+            todoList: updatedTodolist,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({
+            isError: true,
+            message: "Internal Server Error",
+        });
+    }
+});
+exports.updateNote = updateNote;
+const deleteNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _p;
+    try {
+        const userId = (_p = req.user) === null || _p === void 0 ? void 0 : _p._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const { index } = req.params;
+        // Find the user's todolist based on the provided userId
+        const todolist = yield todolist_model_1.default.findOne({ userId });
+        if (!todolist) {
+            return res.status(404).json({
+                isError: true,
+                message: "Todolist not found",
+            });
+        }
+        // Remove the note at the specified index
+        if (+index >= 0 && +index < todolist.notes.length) {
+            todolist.notes.splice(+index, 1);
+        }
+        else {
+            return res.status(404).json({
+                isError: true,
+                message: "Note not found at the specified index",
+            });
+        }
+        // Save the updated todolist
+        yield todolist.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({
+            isError: false,
+            message: "Note deleted successfully",
+            todoList: updatedTodolist,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({
+            isError: true,
+            message: "Internal Server Error",
+        });
+    }
+});
+exports.deleteNote = deleteNote;
+const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _q, _r;
+    try {
+        const userId = (_q = req.user) === null || _q === void 0 ? void 0 : _q._id;
         console.log("checking");
         if (!userId) {
             res.status(500).json({
@@ -321,24 +448,36 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                     hobbiesList: [],
                     travelList: [],
                     notifications: [],
+                    notes: [],
                 });
                 yield newTodoList.save();
             }
             const notification = {
                 heading: "Team Invitation",
                 text: `You have been invited to join the team "${team.name}"`,
-                link: `/join/${teamId}`,
+                link: `/todolist/team/join/${teamId}`,
                 isRead: false,
                 time: new Date().toISOString(),
             };
-            console.log(notification, newTodoList);
             newTodoList.notifications.push(notification);
             team.invitations.push(newMember.email);
             yield newTodoList.save();
         }
+        let newUpdate = {
+            userId,
+            userName: ((_r = req.user) === null || _r === void 0 ? void 0 : _r.name) || "",
+            message: `Invitations sent successfully`,
+            updateType: "update",
+            time: new Date().toISOString(),
+        };
+        team.updates.push(newUpdate);
         yield team.save();
         const updatedTodolist = yield getPopulatedTodoList(userId);
-        res.status(201).json({ isError: false, message: "Invitations sent successfully", todoList: updatedTodolist });
+        res.status(201).json({
+            isError: false,
+            message: "Invitations sent successfully",
+            todoList: updatedTodolist,
+        });
     }
     catch (error) {
         console.error("Error:", error);
@@ -347,10 +486,10 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMembers = addMembers;
 const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _o, _p, _q;
+    var _s, _t, _u, _v;
     try {
-        const userId = (_o = req.user) === null || _o === void 0 ? void 0 : _o._id;
-        const userEmail = ((_p = req.user) === null || _p === void 0 ? void 0 : _p.email) || "";
+        const userId = (_s = req.user) === null || _s === void 0 ? void 0 : _s._id;
+        const userEmail = ((_t = req.user) === null || _t === void 0 ? void 0 : _t.email) || "";
         if (!userId || !userEmail) {
             res.status(500).json({
                 isError: true,
@@ -358,15 +497,6 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         const teamId = req.params.teamId;
-        // Check if the user's email is in team invitations
-        const team = yield team_model_1.default.findById(teamId);
-        if (!team || !team.invitations.includes(userEmail)) {
-            return res.status(400).json({ isError: true, message: 'Invalid invitation to join the team' });
-        }
-        // Check the team type
-        if (team.teamType === 'personal') {
-            return res.status(401).json({ isError: true, message: 'Unauthorized action for joining a personal team' });
-        }
         // Find the user's TodoList
         let userTodoList = yield todolist_model_1.default.findOne({ userId });
         if (!userTodoList) {
@@ -377,43 +507,122 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 hobbiesList: [],
                 travelList: [],
                 notifications: [],
+                notes: [],
             });
             yield userTodoList.save();
         }
+        if (userTodoList.workList.includes(teamId)) {
+            return res.status(401).json({
+                isError: true,
+                message: "Already joined in this team",
+            });
+        }
+        // Check if the user's email is in team invitations
+        const team = yield team_model_1.default.findById(teamId);
+        console.log(team === null || team === void 0 ? void 0 : team.invitations, userEmail);
+        if (!team || !team.invitations.includes(userEmail)) {
+            return res.status(400).json({
+                isError: true,
+                message: "Invalid invitation to join the team",
+            });
+        }
+        // Check the team type
+        if (team.teamType === "personal") {
+            return res.status(401).json({
+                isError: true,
+                message: "Unauthorized action for tring to join a personal team",
+            });
+        }
         switch (team.teamType) {
-            case 'work':
+            case "work":
                 userTodoList.workList.push(teamId);
                 break;
-            case 'project':
+            case "project":
                 userTodoList.projectList.push(teamId);
                 break;
-            case 'hobbies':
+            case "hobbies":
                 userTodoList.hobbiesList.push(teamId);
                 break;
-            case 'travel':
+            case "travel":
                 userTodoList.travelList.push(teamId);
                 break;
             default:
-                return res.status(401).json({ isError: true, message: 'Unauthorized action for joining a invalid team' });
+                return res.status(401).json({
+                    isError: true,
+                    message: "Unauthorized action for joining a invalid team",
+                });
                 break;
         }
-        let newMember = { userId, userName: ((_q = req.user) === null || _q === void 0 ? void 0 : _q.name) || "" };
+        let newMember = { userId, userName: ((_u = req.user) === null || _u === void 0 ? void 0 : _u.name) || "" };
         team.allMembers.push(newMember);
         team.invitations = team.invitations.filter((email) => email !== userEmail);
+        let newUpdate = {
+            userId,
+            userName: ((_v = req.user) === null || _v === void 0 ? void 0 : _v.name) || "",
+            message: `joined`,
+            updateType: "update",
+            time: new Date().toISOString(),
+        };
+        team.updates.push(newUpdate);
         yield Promise.all([userTodoList.save(), team.save()]);
         const updatedTodolist = yield getPopulatedTodoList(userId);
-        res.status(200).json({ isError: false, message: 'Successfully joined the team', todoList: updatedTodolist });
+        res.status(200).json({
+            isError: false,
+            message: "Successfully joined the team",
+            todoList: updatedTodolist,
+        });
     }
     catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ isError: true, message: 'Internal Server Error' });
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
     }
 });
 exports.joinTeam = joinTeam;
-const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s;
+const markNotificationAsRead = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _w;
     try {
-        const userId = (_r = req.user) === null || _r === void 0 ? void 0 : _r._id;
+        const userId = (_w = req.user) === null || _w === void 0 ? void 0 : _w._id;
+        console.log("checking");
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const { time } = req.params;
+        // Find the user's todo list
+        const todoList = yield todolist_model_1.default.findOne({ userId });
+        if (todoList) {
+            const notificationToUpdate = todoList.notifications.find((notification) => notification.time === time);
+            if (!notificationToUpdate) {
+                return res
+                    .status(404)
+                    .json({ isError: true, message: "Notification not found" });
+            }
+            notificationToUpdate.isRead = true;
+            yield todoList.save();
+            return res.json({
+                isError: false,
+                message: "Notification marked as read",
+            });
+        }
+        res.status(500).json({
+            isError: true,
+            message: "Internal Server Error",
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return res
+            .status(500)
+            .json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.markNotificationAsRead = markNotificationAsRead;
+const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _x, _y;
+    try {
+        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -426,7 +635,7 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_s = req.user) === null || _s === void 0 ? void 0 : _s.name },
+            createdBy: { creatorId: userId, creatorName: (_y = req.user) === null || _y === void 0 ? void 0 : _y.name },
             deadline,
             taskType: "dailytask",
         });
@@ -446,9 +655,9 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.addDailyTask = addDailyTask;
 const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _t, _u;
+    var _z, _0;
     try {
-        const userId = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
+        const userId = (_z = req.user) === null || _z === void 0 ? void 0 : _z._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -461,7 +670,7 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_u = req.user) === null || _u === void 0 ? void 0 : _u.name },
+            createdBy: { creatorId: userId, creatorName: (_0 = req.user) === null || _0 === void 0 ? void 0 : _0.name },
             deadline,
             taskType: "reminder",
         });
@@ -481,9 +690,9 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.addReminder = addReminder;
 const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _v, _w;
+    var _1, _2;
     try {
-        const userId = (_v = req.user) === null || _v === void 0 ? void 0 : _v._id;
+        const userId = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -496,7 +705,7 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_w = req.user) === null || _w === void 0 ? void 0 : _w.name },
+            createdBy: { creatorId: userId, creatorName: (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.name },
             assignedTo: [],
             deadline,
             taskType: "task",
@@ -517,9 +726,9 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addTask = addTask;
 const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _x, _y;
+    var _3, _4;
     try {
-        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
+        const userId = (_3 = req.user) === null || _3 === void 0 ? void 0 : _3._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -532,11 +741,11 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             steps = [];
         }
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _z;
+            var _5;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_z = req.user) === null || _z === void 0 ? void 0 : _z.name },
+                createdBy: { creatorId: userId, creatorName: (_5 = req.user) === null || _5 === void 0 ? void 0 : _5.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -546,7 +755,7 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newGoal = new goal_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_y = req.user) === null || _y === void 0 ? void 0 : _y.name },
+            createdBy: { creatorId: userId, creatorName: (_4 = req.user) === null || _4 === void 0 ? void 0 : _4.name },
             steps: createdTasks.map((task) => ({ taskId: task._id })),
             deadline,
             finalGoal,
@@ -567,9 +776,9 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addGoal = addGoal;
 const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _0;
+    var _6;
     try {
-        const userId = (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id;
+        const userId = (_6 = req.user) === null || _6 === void 0 ? void 0 : _6._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -586,11 +795,11 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // Create tasks for the steps
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _1;
+            var _7;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_1 = req.user) === null || _1 === void 0 ? void 0 : _1.name },
+                createdBy: { creatorId: userId, creatorName: (_7 = req.user) === null || _7 === void 0 ? void 0 : _7.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -608,9 +817,9 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSteps = addSteps;
 const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _2;
+    var _8;
     try {
-        const userId = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2._id;
+        const userId = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -628,11 +837,11 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // Create tasks for habits
         const createdTasks = yield Promise.all(habits.map((habit) => __awaiter(void 0, void 0, void 0, function* () {
-            var _3;
+            var _9;
             const newTask = new task_model_1.default({
                 name: habit.name,
                 details: habit.details,
-                createdBy: { creatorId: userId, creatorName: (_3 = req.user) === null || _3 === void 0 ? void 0 : _3.name },
+                createdBy: { creatorId: userId, creatorName: (_9 = req.user) === null || _9 === void 0 ? void 0 : _9.name },
                 deadline: habit.deadline,
                 taskType: "habit",
             });
@@ -731,9 +940,9 @@ const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.resetDailyTasks = resetDailyTasks;
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _4;
+    var _10;
     try {
-        const userId = (_4 = req.user) === null || _4 === void 0 ? void 0 : _4._id;
+        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
         console.log("checking");
         if (!userId) {
             res.status(500).json({
@@ -746,7 +955,11 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         // Update the team by ID
         const updatedTeam = yield team_model_1.default.updateOne({ _id: teamId }, { $set: updateData });
         const updatedTodolist = yield getPopulatedTodoList(userId);
-        res.status(201).json({ isError: false, message: "Team updated successfully", todoList: updatedTodolist });
+        res.status(201).json({
+            isError: false,
+            message: "Team updated successfully",
+            todoList: updatedTodolist,
+        });
     }
     catch (error) {
         console.error("Error:", error);
@@ -755,9 +968,9 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _5;
+    var _11;
     try {
-        const userId = (_5 = req.user) === null || _5 === void 0 ? void 0 : _5._id;
+        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -800,17 +1013,11 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateGoal = updateGoal;
 const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _6, _7;
+    var _12, _13;
     try {
-        const userId = (_6 = req.user) === null || _6 === void 0 ? void 0 : _6._id;
-        const userName = (_7 = req.user) === null || _7 === void 0 ? void 0 : _7.name;
-        if (!userId) {
-            res.status(500).json({
-                isError: true,
-                message: "Internal Server Error",
-            });
-        }
-        if (!userName) {
+        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
+        const userName = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13.name;
+        if (!userId || !userName) {
             res.status(500).json({
                 isError: true,
                 message: "Internal Server Error",
@@ -866,10 +1073,57 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.updateTaskDone = updateTaskDone;
-const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _8;
+const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _14, _15;
     try {
-        const userId = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8._id;
+        const { teamId } = req.params;
+        const { message } = req.body;
+        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
+        const userName = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15.name;
+        // Check if userId and userName are present
+        if (!userId || !userName) {
+            return res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        // Find the team based on the provided teamId
+        const team = yield team_model_1.default.findById(teamId);
+        if (!team) {
+            return res.status(404).json({
+                isError: true,
+                message: "Team not found",
+            });
+        }
+        // Add the new message to the updates array
+        team.updates.push({
+            userId,
+            userName,
+            message,
+            updateType: "message",
+            time: new Date().toISOString(),
+        });
+        // Save the updated team
+        yield team.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        return res.status(200).json({
+            isError: false,
+            todoList: updatedTodolist,
+        });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({
+            isError: true,
+            message: "Internal Server Error",
+        });
+    }
+});
+exports.addMessage = addMessage;
+const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _16;
+    try {
+        const userId = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16._id;
         console.log("checking");
         if (!userId) {
             res.status(500).json({

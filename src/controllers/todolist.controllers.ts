@@ -57,6 +57,7 @@ export const getTodoList = async (req: Request, res: Response) => {
 				hobbiesList: [],
 				travelList: [],
 				notifications: [],
+				notes: [],
 			});
 
 			await todolist.save();
@@ -284,6 +285,140 @@ export const addTravelListTeam = async (req: Request, res: Response) => {
 	}
 };
 
+export const addNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { title, note } = req.body;
+
+		let todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			todolist = new TodoListModel({
+				userId,
+				workList: [],
+				projectList: [],
+				hobbiesList: [],
+				travelList: [],
+				notifications: [],
+				notes: [{ title, note }],
+			});
+		} else {
+			todolist.notes.push({ title, note });
+		}
+
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note added successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+export const updateNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { notes } = req.body;
+
+
+		const todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			return res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		todolist.notes=notes
+
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note updated successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+export const deleteNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { index } = req.params;
+
+		// Find the user's todolist based on the provided userId
+		const todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			return res.status(404).json({
+				isError: true,
+				message: "Todolist not found",
+			});
+		}
+
+		// Remove the note at the specified index
+		if (+index >= 0 && +index < todolist.notes.length) {
+			todolist.notes.splice(+index, 1);
+		} else {
+			return res.status(404).json({
+				isError: true,
+				message: "Note not found at the specified index",
+			});
+		}
+
+		// Save the updated todolist
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note deleted successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+
 export const addMembers = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
@@ -298,7 +433,7 @@ export const addMembers = async (req: Request, res: Response) => {
 		const teamId = req.params.teamId;
 		const { membersEmails } = req.body;
 
-		if(!membersEmails) {
+		if (!membersEmails) {
 			return res
 				.status(401)
 				.json({ isError: true, message: "Members emails needed" });
@@ -319,7 +454,7 @@ export const addMembers = async (req: Request, res: Response) => {
 			email: { $in: emailsForSendInvitation },
 		});
 
-		if(newMembers.length === 0 ){
+		if (newMembers.length === 0) {
 			return res
 				.status(401)
 				.json({ isError: true, message: "No user found" });
@@ -338,6 +473,7 @@ export const addMembers = async (req: Request, res: Response) => {
 					hobbiesList: [],
 					travelList: [],
 					notifications: [],
+					notes: [],
 				});
 				await newTodoList.save();
 			}
@@ -351,16 +487,29 @@ export const addMembers = async (req: Request, res: Response) => {
 			};
 
 			newTodoList.notifications.push(notification);
-			team.invitations.push(newMember.email)
+			team.invitations.push(newMember.email);
 
 			await newTodoList.save();
 		}
+
+		let newUpdate = {
+			userId,
+			userName: req.user?.name || "",
+			message: `Invitations sent successfully`,
+			updateType: "update",
+			time: new Date().toISOString(),
+		};
+		team.updates.push(newUpdate);
 
 		await team.save();
 
 		const updatedTodolist = await getPopulatedTodoList(userId);
 
-		res.status(201).json({ isError: false,message: "Invitations sent successfully", todoList: updatedTodolist });
+		res.status(201).json({
+			isError: false,
+			message: "Invitations sent successfully",
+			todoList: updatedTodolist,
+		});
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -376,65 +525,148 @@ export const joinTeam = async (req: Request, res: Response) => {
 				message: "Internal Server Error",
 			});
 		}
-	  const teamId = req.params.teamId;
-  
-	  // Check if the user's email is in team invitations
-	  const team = await TeamModel.findById(teamId);
-	  if (!team || !team.invitations.includes(userEmail)) {
-		return res.status(400).json({ isError: true, message: 'Invalid invitation to join the team' });
-	  }
-  
-	  // Check the team type
-	  if (team.teamType === 'personal') {
-		return res.status(401).json({ isError: true, message: 'Unauthorized action for joining a personal team' });
-	  }
-  
-	  // Find the user's TodoList
-	  let userTodoList = await TodoListModel.findOne({ userId });
-  
-	  if (!userTodoList) {
-		userTodoList = new TodoListModel({
-			userId: userId,
-			workList: [],
-			projectList: [],
-			hobbiesList: [],
-			travelList: [],
-			notifications: [],
-		});
-		await userTodoList.save();
-	}
-	  switch (team.teamType) {
-		case 'work':
-		  userTodoList.workList.push(teamId);
-		  break;
-		case 'project':
-		  userTodoList.projectList.push(teamId);
-		  break;
-		case 'hobbies':
-		  userTodoList.hobbiesList.push(teamId);
-		  break;
-		case 'travel':
-		  userTodoList.travelList.push(teamId);
-		  break;
-		default:
-			return res.status(401).json({ isError: true, message: 'Unauthorized action for joining a invalid team' })
-		  break;
-	  }
-  
-	  let newMember = { userId, userName: req.user?.name || "" }
-	  team.allMembers.push(newMember);
-	  team.invitations = team.invitations.filter((email) => email !== userEmail) as [string];
-  
-	  await Promise.all([userTodoList.save(), team.save()]);
+		const teamId = req.params.teamId;
 
-	  const updatedTodolist = await getPopulatedTodoList(userId);
-  
-	  res.status(200).json({ isError: false, message: 'Successfully joined the team', todoList: updatedTodolist });
+		// Find the user's TodoList
+		let userTodoList = await TodoListModel.findOne({ userId });
+
+		if (!userTodoList) {
+			userTodoList = new TodoListModel({
+				userId: userId,
+				workList: [],
+				projectList: [],
+				hobbiesList: [],
+				travelList: [],
+				notifications: [],
+				notes: [],
+			});
+			await userTodoList.save();
+		}
+
+		if (userTodoList.workList.includes(teamId)) {
+			return res.status(401).json({
+				isError: true,
+				message: "Already joined in this team",
+			});
+		}
+
+		// Check if the user's email is in team invitations
+		const team = await TeamModel.findById(teamId);
+		console.log(team?.invitations, userEmail);
+		if (!team || !team.invitations.includes(userEmail)) {
+			return res.status(400).json({
+				isError: true,
+				message: "Invalid invitation to join the team",
+			});
+		}
+
+		// Check the team type
+		if (team.teamType === "personal") {
+			return res.status(401).json({
+				isError: true,
+				message: "Unauthorized action for tring to join a personal team",
+			});
+		}
+
+		switch (team.teamType) {
+			case "work":
+				userTodoList.workList.push(teamId);
+				break;
+			case "project":
+				userTodoList.projectList.push(teamId);
+				break;
+			case "hobbies":
+				userTodoList.hobbiesList.push(teamId);
+				break;
+			case "travel":
+				userTodoList.travelList.push(teamId);
+				break;
+			default:
+				return res.status(401).json({
+					isError: true,
+					message: "Unauthorized action for joining a invalid team",
+				});
+				break;
+		}
+
+		let newMember = { userId, userName: req.user?.name || "" };
+		team.allMembers.push(newMember);
+		team.invitations = team.invitations.filter(
+			(email) => email !== userEmail
+		) as [string];
+
+		let newUpdate = {
+			userId,
+			userName: req.user?.name || "",
+			message: `joined`,
+			updateType: "update",
+			time: new Date().toISOString(),
+		};
+		team.updates.push(newUpdate);
+
+		await Promise.all([userTodoList.save(), team.save()]);
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(200).json({
+			isError: false,
+			message: "Successfully joined the team",
+			todoList: updatedTodolist,
+		});
 	} catch (error) {
-	  console.error('Error:', error);
-	  res.status(500).json({ isError: true, message: 'Internal Server Error' });
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
 	}
-  }
+};
+
+export const markNotificationAsRead = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		console.log("checking");
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		const { time } = req.params;
+
+		// Find the user's todo list
+		const todoList = await TodoListModel.findOne({ userId });
+
+		if (todoList) {
+			const notificationToUpdate = todoList.notifications.find(
+				(notification) => notification.time === time
+			);
+
+			if (!notificationToUpdate) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "Notification not found" });
+			}
+
+			notificationToUpdate.isRead = true;
+
+			await todoList.save();
+
+			return res.json({
+				isError: false,
+				message: "Notification marked as read",
+			});
+		}
+
+		res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res
+			.status(500)
+			.json({ isError: true, message: "Internal Server Error" });
+	}
+};
 
 export const addDailyTask = async (req: Request, res: Response) => {
 	try {
@@ -822,8 +1054,11 @@ export const updateTeam = async (req: Request, res: Response) => {
 
 		const updatedTodolist = await getPopulatedTodoList(userId);
 
-		res.status(201).json({ isError: false,message: "Team updated successfully", todoList: updatedTodolist });
-		
+		res.status(201).json({
+			isError: false,
+			message: "Team updated successfully",
+			todoList: updatedTodolist,
+		});
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -885,13 +1120,7 @@ export const updateTaskDone = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
 		const userName = req.user?.name;
-		if (!userId) {
-			res.status(500).json({
-				isError: true,
-				message: "Internal Server Error",
-			});
-		}
-		if (!userName) {
+		if (!userId || !userName) {
 			res.status(500).json({
 				isError: true,
 				message: "Internal Server Error",
@@ -954,6 +1183,59 @@ export const updateTaskDone = async (req: Request, res: Response) => {
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+
+export const addMessage = async (req: Request, res: Response) => {
+	try {
+		const { teamId } = req.params;
+		const { message } = req.body;
+
+		const userId = req.user?._id;
+		const userName = req.user?.name;
+
+		// Check if userId and userName are present
+		if (!userId || !userName) {
+			return res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		// Find the team based on the provided teamId
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res.status(404).json({
+				isError: true,
+				message: "Team not found",
+			});
+		}
+
+		// Add the new message to the updates array
+		team.updates.push({
+			userId,
+			userName,
+			message,
+			updateType: "message",
+			time: new Date().toISOString(),
+		});
+
+		// Save the updated team
+		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		return res.status(200).json({
+			isError: false,
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
 	}
 };
 
