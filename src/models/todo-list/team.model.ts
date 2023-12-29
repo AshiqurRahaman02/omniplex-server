@@ -5,17 +5,32 @@ export interface ITeam extends Document {
 	name: string;
 	password: string;
 	details: string;
+	teamType: "work" | "project" | "personal" | "hobbies" | "travel";
 	createdBy: { creatorId: string; creatorName: string };
 	allMembers: [{ userId: string; userName: string }];
+	invitations: [string];
+	updates: [{ userId: string; userName: string; message:string; updateType: string; time:string }];
 	dailyTasks: [string];
 	reminders: [string];
 	tasks: [string];
 	goals: [string];
 	habits: { habitsId: [string]; tracks: [{}] };
-	financialsPlans: { budget: string; spends: [{
-		date: string;
-		allSpends: [{ amount: string, amountType: string, usedFor: string, time: string}]
-	}] };
+	financialsPlans: {
+		budget: string;
+		spends: [
+			{
+				date: string;
+				allSpends: [
+					{
+						amount: string;
+						amountType: string;
+						usedFor: string;
+						time: string;
+					}
+				];
+			}
+		];
+	};
 }
 
 const teamSchema: Schema = new Schema(
@@ -32,6 +47,11 @@ const teamSchema: Schema = new Schema(
 		details: {
 			type: String,
 		},
+		teamType: {
+			type: String,
+			enum: ["work", "project", "personal", "hobbies", "travel"],
+			required: true,
+		},
 		createdBy: {
 			creatorId: {
 				type: mongoose.Schema.Types.ObjectId,
@@ -47,10 +67,22 @@ const teamSchema: Schema = new Schema(
 			habitsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
 			tracks: [{}],
 		},
-		financialsPlans: { budget: String, spends: [{
-			date: String,
-			allSpends: [{ amount: String, amountType: String, usedFor: String, time: String}]
-		}]  },
+		financialsPlans: {
+			budget: String,
+			spends: [
+				{
+					date: String,
+					allSpends: [
+						{
+							amount: String,
+							amountType: String,
+							usedFor: String,
+							time: String,
+						},
+					],
+				},
+			],
+		},
 		allMembers: [
 			{
 				userId: {
@@ -62,6 +94,8 @@ const teamSchema: Schema = new Schema(
 				},
 			},
 		],
+		invitations: [String],
+		updates: [{ userId: String, userName: String,message:String, updateType: String, time:String }],
 		dailyTasks: [
 			{
 				type: mongoose.Schema.Types.ObjectId,

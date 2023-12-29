@@ -7,6 +7,8 @@ export interface ITodoList extends Document {
 	personalList: string;
 	hobbiesList: [string];
 	travelList: [string];
+	notifications: [{heading: string, text: string, link: string, isRead: boolean,  time: string}];
+	notes: [{title: string, note:string}]
 }
 
 const todolistSchema: Schema = new Schema({
@@ -19,6 +21,8 @@ const todolistSchema: Schema = new Schema({
 	personalList: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
 	hobbiesList: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
 	travelList: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
+	notifications: [{heading: String, text: String, link: String, isRead: {type: Boolean, default: false}, time: String}],
+	notes: [{title: String, note:String}]
 });
 
 const TodoListModel = mongoose.model<ITodoList>("Todolist", todolistSchema);

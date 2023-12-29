@@ -3,37 +3,38 @@ import TodoListModel from "../models/todo-list/todolist.model";
 import TeamModel from "../models/todo-list/team.model";
 import GoalModel from "../models/todo-list/goal.model";
 import TaskModel from "../models/todo-list/task.model";
+import UserModel from "../models/user.model";
 
-const getPopulatedTodoList =async (userId:string) => {
-	const todoList = await TodoListModel.findOne({ userId }).populate({
-		path: 'workList',
-		populate: {
-			path: 'dailyTasks reminders tasks',
-			model: 'Task', 
-		  },
-		  
-	  }).populate({
-		path: 'workList',
-		populate: {
-			path: 'goals',
-			model: 'Goal', 
-		  },
-		  
-	  }).populate({
-		path: 'workList',
-		populate: {
-			path: 'goals',
-			populate:{
-				path: "steps",
-				model: "Task"
-			}
-		  },
-		  
-	  })
-	  .exec();
+const getPopulatedTodoList = async (userId: string) => {
+	const todoList = await TodoListModel.findOne({ userId })
+		.populate({
+			path: "workList",
+			populate: {
+				path: "dailyTasks reminders tasks",
+				model: "Task",
+			},
+		})
+		.populate({
+			path: "workList",
+			populate: {
+				path: "goals",
+				model: "Goal",
+			},
+		})
+		.populate({
+			path: "workList",
+			populate: {
+				path: "goals",
+				populate: {
+					path: "steps",
+					model: "Task",
+				},
+			},
+		})
+		.exec();
 
-	  return todoList
-}
+	return todoList;
+};
 
 export const getTodoList = async (req: Request, res: Response) => {
 	try {
@@ -46,7 +47,7 @@ export const getTodoList = async (req: Request, res: Response) => {
 			});
 		}
 
-		let todolist = await getPopulatedTodoList(userId)
+		let todolist = await getPopulatedTodoList(userId);
 
 		if (!todolist) {
 			todolist = new TodoListModel({
@@ -55,6 +56,8 @@ export const getTodoList = async (req: Request, res: Response) => {
 				projectList: [],
 				hobbiesList: [],
 				travelList: [],
+				notifications: [],
+				notes: [],
 			});
 
 			await todolist.save();
@@ -85,6 +88,7 @@ export const addWorkListTeam = async (req: Request, res: Response) => {
 			name,
 			password,
 			details,
+			teamType: "work",
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			allMembers: [],
 			dailyTasks: [],
@@ -102,9 +106,9 @@ export const addWorkListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
-		res.status(201).json({ isError: false, todoList:updatedTodolist });
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -128,6 +132,7 @@ export const addProjectListTeam = async (req: Request, res: Response) => {
 			name,
 			password,
 			details,
+			teamType: "project",
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			allMembers: [],
 			dailyTasks: [],
@@ -144,8 +149,9 @@ export const addProjectListTeam = async (req: Request, res: Response) => {
 
 			await todoList.save();
 		}
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
-		res.status(201).json({ isError: false, team: savedTeam });
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -169,6 +175,7 @@ export const addPersonalkListTeam = async (req: Request, res: Response) => {
 			name,
 			password,
 			details,
+			teamType: "personal",
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			dailyTasks: [],
 			reminders: [],
@@ -211,6 +218,7 @@ export const addHobbiesListTeam = async (req: Request, res: Response) => {
 			name,
 			password,
 			details,
+			teamType: "hobbies",
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			allMembers: [],
 			dailyTasks: [],
@@ -252,6 +260,7 @@ export const addTravelListTeam = async (req: Request, res: Response) => {
 			name,
 			password,
 			details,
+			teamType: "travel",
 			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			allMembers: [],
 			dailyTasks: [],
@@ -273,6 +282,389 @@ export const addTravelListTeam = async (req: Request, res: Response) => {
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+
+export const addNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { title, note } = req.body;
+
+		let todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			todolist = new TodoListModel({
+				userId,
+				workList: [],
+				projectList: [],
+				hobbiesList: [],
+				travelList: [],
+				notifications: [],
+				notes: [{ title, note }],
+			});
+		} else {
+			todolist.notes.push({ title, note });
+		}
+
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note added successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+export const updateNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { notes } = req.body;
+
+
+		const todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			return res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		todolist.notes=notes
+
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note updated successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+export const deleteNote = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { index } = req.params;
+
+		// Find the user's todolist based on the provided userId
+		const todolist = await TodoListModel.findOne({ userId });
+
+		if (!todolist) {
+			return res.status(404).json({
+				isError: true,
+				message: "Todolist not found",
+			});
+		}
+
+		// Remove the note at the specified index
+		if (+index >= 0 && +index < todolist.notes.length) {
+			todolist.notes.splice(+index, 1);
+		} else {
+			return res.status(404).json({
+				isError: true,
+				message: "Note not found at the specified index",
+			});
+		}
+
+		// Save the updated todolist
+		await todolist.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Note deleted successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
+
+export const addMembers = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		console.log("checking");
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		const teamId = req.params.teamId;
+		const { membersEmails } = req.body;
+
+		if (!membersEmails) {
+			return res
+				.status(401)
+				.json({ isError: true, message: "Members emails needed" });
+		}
+
+		const team = await TeamModel.findById(teamId);
+		if (!team || team.createdBy.creatorId.toString() !== userId.toString()) {
+			return res
+				.status(401)
+				.json({ isError: true, message: "Unauthorized action" });
+		}
+
+		const emailsForSendInvitation = membersEmails.filter(
+			(email: string) => !team.invitations.includes(email)
+		);
+
+		const newMembers = await UserModel.find({
+			email: { $in: emailsForSendInvitation },
+		});
+
+		if (newMembers.length === 0) {
+			return res
+				.status(401)
+				.json({ isError: true, message: "No user found" });
+		}
+
+		for (const newMember of newMembers) {
+			let newTodoList = await TodoListModel.findOne({
+				userId: newMember._id,
+			});
+
+			if (!newTodoList) {
+				newTodoList = new TodoListModel({
+					userId: newMember._id,
+					workList: [],
+					projectList: [],
+					hobbiesList: [],
+					travelList: [],
+					notifications: [],
+					notes: [],
+				});
+				await newTodoList.save();
+			}
+
+			const notification = {
+				heading: "Team Invitation",
+				text: `You have been invited to join the team "${team.name}"`,
+				link: `/todolist/team/join/${teamId}`,
+				isRead: false,
+				time: new Date().toISOString(),
+			};
+
+			newTodoList.notifications.push(notification);
+			team.invitations.push(newMember.email);
+
+			await newTodoList.save();
+		}
+
+		let newUpdate = {
+			userId,
+			userName: req.user?.name || "",
+			message: `Invitations sent successfully`,
+			updateType: "update",
+			time: new Date().toISOString(),
+		};
+		team.updates.push(newUpdate);
+
+		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
+			isError: false,
+			message: "Invitations sent successfully",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+export const joinTeam = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		const userEmail = req.user?.email || "";
+		if (!userId || !userEmail) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const teamId = req.params.teamId;
+
+		// Find the user's TodoList
+		let userTodoList = await TodoListModel.findOne({ userId });
+
+		if (!userTodoList) {
+			userTodoList = new TodoListModel({
+				userId: userId,
+				workList: [],
+				projectList: [],
+				hobbiesList: [],
+				travelList: [],
+				notifications: [],
+				notes: [],
+			});
+			await userTodoList.save();
+		}
+
+		if (userTodoList.workList.includes(teamId)) {
+			return res.status(401).json({
+				isError: true,
+				message: "Already joined in this team",
+			});
+		}
+
+		// Check if the user's email is in team invitations
+		const team = await TeamModel.findById(teamId);
+		console.log(team?.invitations, userEmail);
+		if (!team || !team.invitations.includes(userEmail)) {
+			return res.status(400).json({
+				isError: true,
+				message: "Invalid invitation to join the team",
+			});
+		}
+
+		// Check the team type
+		if (team.teamType === "personal") {
+			return res.status(401).json({
+				isError: true,
+				message: "Unauthorized action for tring to join a personal team",
+			});
+		}
+
+		switch (team.teamType) {
+			case "work":
+				userTodoList.workList.push(teamId);
+				break;
+			case "project":
+				userTodoList.projectList.push(teamId);
+				break;
+			case "hobbies":
+				userTodoList.hobbiesList.push(teamId);
+				break;
+			case "travel":
+				userTodoList.travelList.push(teamId);
+				break;
+			default:
+				return res.status(401).json({
+					isError: true,
+					message: "Unauthorized action for joining a invalid team",
+				});
+				break;
+		}
+
+		let newMember = { userId, userName: req.user?.name || "" };
+		team.allMembers.push(newMember);
+		team.invitations = team.invitations.filter(
+			(email) => email !== userEmail
+		) as [string];
+
+		let newUpdate = {
+			userId,
+			userName: req.user?.name || "",
+			message: `joined`,
+			updateType: "update",
+			time: new Date().toISOString(),
+		};
+		team.updates.push(newUpdate);
+
+		await Promise.all([userTodoList.save(), team.save()]);
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(200).json({
+			isError: false,
+			message: "Successfully joined the team",
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+
+export const markNotificationAsRead = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		console.log("checking");
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		const { time } = req.params;
+
+		// Find the user's todo list
+		const todoList = await TodoListModel.findOne({ userId });
+
+		if (todoList) {
+			const notificationToUpdate = todoList.notifications.find(
+				(notification) => notification.time === time
+			);
+
+			if (!notificationToUpdate) {
+				return res
+					.status(404)
+					.json({ isError: true, message: "Notification not found" });
+			}
+
+			notificationToUpdate.isRead = true;
+
+			await todoList.save();
+
+			return res.json({
+				isError: false,
+				message: "Notification marked as read",
+			});
+		}
+
+		res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res
+			.status(500)
+			.json({ isError: true, message: "Internal Server Error" });
 	}
 };
 
@@ -308,8 +700,8 @@ export const addDailyTask = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
-		res.status(201).json({ isError: false, todoList:updatedTodolist });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -347,7 +739,7 @@ export const addReminder = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
@@ -388,7 +780,7 @@ export const addTask = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
@@ -406,11 +798,11 @@ export const addGoal = async (req: Request, res: Response) => {
 			});
 		}
 
-		let { name, details,  steps, deadline, finalGoal } = req.body;
+		let { name, details, steps, deadline, finalGoal } = req.body;
 		const teamId = req.params.teamId;
 
-		if(!steps){
-			steps = []
+		if (!steps) {
+			steps = [];
 		}
 
 		const createdTasks = await Promise.all(
@@ -430,10 +822,10 @@ export const addGoal = async (req: Request, res: Response) => {
 		const newGoal = new GoalModel({
 			name,
 			details,
-			createdBy:{ creatorId: userId, creatorName: req.user?.name },
+			createdBy: { creatorId: userId, creatorName: req.user?.name },
 			steps: createdTasks.map((task) => ({ taskId: task._id })),
 			deadline,
-			finalGoal
+			finalGoal,
 		});
 
 		const savedGoal = await newGoal.save();
@@ -446,7 +838,7 @@ export const addGoal = async (req: Request, res: Response) => {
 			await team.save();
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
@@ -489,11 +881,11 @@ export const addSteps = async (req: Request, res: Response) => {
 			})
 		);
 
-		goal.steps.push(...createdTasks.map((task) => (task)));
+		goal.steps.push(...createdTasks.map((task) => task));
 
 		await goal.save();
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
@@ -642,6 +1034,15 @@ export const resetDailyTasks = async () => {
 
 export const updateTeam = async (req: Request, res: Response) => {
 	try {
+		const userId = req.user?._id;
+		console.log("checking");
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
 		const teamId = req.params.teamId;
 		const updateData = req.body;
 
@@ -651,10 +1052,12 @@ export const updateTeam = async (req: Request, res: Response) => {
 			{ $set: updateData }
 		);
 
-		res.status(200).json({
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({
 			isError: false,
 			message: "Team updated successfully",
-			updatedTeam,
+			todoList: updatedTodolist,
 		});
 	} catch (error) {
 		console.error("Error:", error);
@@ -680,8 +1083,12 @@ export const updateTask = async (req: Request, res: Response) => {
 			{ $set: updateData }
 		);
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
-		res.status(201).json({ isError: false,message: "Task updated successfully", todoList:updatedTodolist });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+		res.status(201).json({
+			isError: false,
+			message: "Task updated successfully",
+			todoList: updatedTodolist,
+		});
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -709,69 +1116,128 @@ export const updateGoal = async (req: Request, res: Response) => {
 	}
 };
 
-export const updateTaskDone =  async (req:Request, res:Response) => {
+export const updateTaskDone = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		const userName = req.user?.name
-		if (!userId ) {
-			res.status(500).json({
-				isError: true,
-				message: "Internal Server Error",
-			});
-		}
-		if (!userName) {
+		const userName = req.user?.name;
+		if (!userId || !userName) {
 			res.status(500).json({
 				isError: true,
 				message: "Internal Server Error",
 			});
 		}
 
-	  const taskId = req.params.taskId;
-  
-	  const task = await TaskModel.findById(taskId);
-  
-	  if (!task) {
-		return res.status(404).json({ isError: true, message: 'Task not found' });
-	  }
-  
-	  // Check if the task is not done
-	  if (!task.done.isDone) {
-		// Update task as done
-		task.done.isDone = true;
-		task.done.doneBy = {
-		  userId: userId,
-		  userName: userName || "" ,
-		};
-		task.done.time = new Date().toISOString(); 
-  
-		await task.save();
-		
-		const updatedTodolist = await getPopulatedTodoList(userId)
-  
-		return res.status(200).json({ isError: false, message: 'Task marked as done', todoList:updatedTodolist });
-	  }
-  
-	  // If the task is already done, allow admin to update
-	  if (task.createdBy.creatorId.toString() === userId.toString()) {
-		task.done.isDone = false;
-		task.done.doneBy = {
-			userId: userId,
-			userName: userName || ""  ,
-		};
-		task.done.time = new Date().toISOString();
-  
-		await task.save();
-  
-		const updatedTodolist = await getPopulatedTodoList(userId)
-		return res.status(200).json({ isError: false, message: 'Task marked as not done', todoList: updatedTodolist });
-	  }
-	  
-	  return res.status(403).json({ isError: true, message: 'Permission denied to update task' });
+		const taskId = req.params.taskId;
+
+		const task = await TaskModel.findById(taskId);
+
+		if (!task) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Task not found" });
+		}
+
+		// Check if the task is not done
+		if (!task.done.isDone) {
+			// Update task as done
+			task.done.isDone = true;
+			task.done.doneBy = {
+				userId: userId,
+				userName: userName || "",
+			};
+			task.done.time = new Date().toISOString();
+
+			await task.save();
+
+			const updatedTodolist = await getPopulatedTodoList(userId);
+
+			return res.status(200).json({
+				isError: false,
+				message: "Task marked as done",
+				todoList: updatedTodolist,
+			});
+		}
+
+		// If the task is already done, allow admin to update
+		if (task.createdBy.creatorId.toString() === userId.toString()) {
+			task.done.isDone = false;
+			task.done.doneBy = {
+				userId: userId,
+				userName: userName || "",
+			};
+			task.done.time = new Date().toISOString();
+
+			await task.save();
+
+			const updatedTodolist = await getPopulatedTodoList(userId);
+			return res.status(200).json({
+				isError: false,
+				message: "Task marked as not done",
+				todoList: updatedTodolist,
+			});
+		}
+
+		return res
+			.status(403)
+			.json({ isError: true, message: "Permission denied to update task" });
 	} catch (error) {
-	  console.error('Error:', error);
-	  res.status(500).json({ isError: true, message: 'Internal Server Error' });
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
 	}
-  }
+};
+
+export const addMessage = async (req: Request, res: Response) => {
+	try {
+		const { teamId } = req.params;
+		const { message } = req.body;
+
+		const userId = req.user?._id;
+		const userName = req.user?.name;
+
+		// Check if userId and userName are present
+		if (!userId || !userName) {
+			return res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		// Find the team based on the provided teamId
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res.status(404).json({
+				isError: true,
+				message: "Team not found",
+			});
+		}
+
+		// Add the new message to the updates array
+		team.updates.push({
+			userId,
+			userName,
+			message,
+			updateType: "message",
+			time: new Date().toISOString(),
+		});
+
+		// Save the updated team
+		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		return res.status(200).json({
+			isError: false,
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		return res.status(500).json({
+			isError: true,
+			message: "Internal Server Error",
+		});
+	}
+};
 
 export const deleteTask = async (req: Request, res: Response) => {
 	try {
@@ -795,8 +1261,12 @@ export const deleteTask = async (req: Request, res: Response) => {
 				.json({ isError: true, message: "Task not found" });
 		}
 
-		const updatedTodolist = await getPopulatedTodoList(userId)
-		res.status(201).json({ isError: false,message: "Task deleted successfully", todoList:updatedTodolist });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+		res.status(201).json({
+			isError: false,
+			message: "Task deleted successfully",
+			todoList: updatedTodolist,
+		});
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });

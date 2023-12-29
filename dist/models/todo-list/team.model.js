@@ -37,6 +37,11 @@ const teamSchema = new mongoose_1.Schema({
     details: {
         type: String,
     },
+    teamType: {
+        type: String,
+        enum: ["work", "project", "personal", "hobbies", "travel"],
+        required: true,
+    },
     createdBy: {
         creatorId: {
             type: mongoose_1.default.Schema.Types.ObjectId,
@@ -52,10 +57,22 @@ const teamSchema = new mongoose_1.Schema({
         habitsId: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Task" }],
         tracks: [{}],
     },
-    financialsPlans: { budget: String, spends: [{
+    financialsPlans: {
+        budget: String,
+        spends: [
+            {
                 date: String,
-                allSpends: [{ amount: String, amountType: String, usedFor: String, time: String }]
-            }] },
+                allSpends: [
+                    {
+                        amount: String,
+                        amountType: String,
+                        usedFor: String,
+                        time: String,
+                    },
+                ],
+            },
+        ],
+    },
     allMembers: [
         {
             userId: {
@@ -67,6 +84,8 @@ const teamSchema = new mongoose_1.Schema({
             },
         },
     ],
+    invitations: [String],
+    updates: [{ userId: String, userName: String, message: String, updateType: String, time: String }],
     dailyTasks: [
         {
             type: mongoose_1.default.Schema.Types.ObjectId,

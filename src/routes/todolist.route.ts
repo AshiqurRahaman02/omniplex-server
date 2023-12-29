@@ -5,6 +5,9 @@ import {
 	addGoal,
 	addHabit,
 	addHobbiesListTeam,
+	addMembers,
+	addMessage,
+	addNote,
 	addPersonalkListTeam,
 	addProjectListTeam,
 	addReminder,
@@ -14,10 +17,14 @@ import {
 	addTravelListTeam,
 	addWorkListTeam,
 	deleteGoal,
+	deleteNote,
 	deleteTask,
 	deleteTeam,
 	getTodoList,
+	joinTeam,
+	markNotificationAsRead,
 	updateGoal,
+	updateNote,
 	updateTask,
 	updateTaskDone,
 	updateTeam,
@@ -34,6 +41,11 @@ todolistRouter.post("/project/add-team", addProjectListTeam);
 todolistRouter.post("/personal/add-team", addPersonalkListTeam);
 todolistRouter.post("/hobbies/add-team", addHobbiesListTeam);
 todolistRouter.post("/travel/add-team", addTravelListTeam);
+
+// Routes to create,update or delete Note
+todolistRouter.post('/note/addNote', addNote);
+todolistRouter.put('/note/updateNote',updateNote);
+todolistRouter.delete('/note/deleteNote/:index',deleteNote)
 
 // Routes to create a task, update TeamModel, and return the team details
 todolistRouter.post("/daily-task/createTask/:teamId", addDailyTask);
@@ -56,6 +68,15 @@ todolistRouter.put("/task/update/:taskId", updateTask);
 todolistRouter.put("/task/updateTaskDone/:taskId", updateTaskDone)
 // Route to update a goal by ID
 todolistRouter.put("/goal/update/:goalId", updateGoal);
+
+// Route to add members to a team
+todolistRouter.post('/team/addMembers/:teamId',addMembers)
+// Route to join a team
+todolistRouter.post('/team/joinTeam/:teamId',joinTeam)
+// Route to update isRead for a notification
+todolistRouter.put('/markNotificationAsRead/:time', markNotificationAsRead)
+// Route to add a message to updates in a team
+todolistRouter.post('/team/addMessage/:teamId', addMessage)
 
 // Route to delete a team by ID
 todolistRouter.delete("/team/delete/:teamId", deleteTeam);
