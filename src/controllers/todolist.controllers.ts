@@ -8,21 +8,21 @@ import UserModel from "../models/user.model";
 const getPopulatedTodoList = async (userId: string) => {
 	const todoList = await TodoListModel.findOne({ userId })
 		.populate({
-			path: "workList",
+			path: "workList projectList personalList",
 			populate: {
 				path: "dailyTasks reminders tasks",
 				model: "Task",
 			},
 		})
 		.populate({
-			path: "workList",
+			path: "workList projectList personalList",
 			populate: {
 				path: "goals",
 				model: "Goal",
 			},
 		})
 		.populate({
-			path: "workList",
+			path: "workList projectList personalList",
 			populate: {
 				path: "goals",
 				populate: {
@@ -39,7 +39,7 @@ const getPopulatedTodoList = async (userId: string) => {
 export const getTodoList = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log("checking");
+		const userName = req.user?.name
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -49,11 +49,26 @@ export const getTodoList = async (req: Request, res: Response) => {
 
 		let todolist = await getPopulatedTodoList(userId);
 
-		if (!todolist) {
+		if (!todolist ) {
+			const newTeam = new TeamModel({
+				isPublic: false,
+				name:userName,
+				details:"",
+				teamType: "personal",
+				createdBy: { creatorId: userId, creatorName: userName },
+				dailyTasks: [],
+				reminders: [],
+				tasks: [],
+				goals: [],
+				habits: { habitsId: [], tracks: [{}] },
+				financialsPlans: { budget: "", spends: [{}] },
+			});
+			const savedTeam = await newTeam.save();
+
 			todolist = new TodoListModel({
 				userId,
 				workList: [],
-				projectList: [],
+				projectList: savedTeam._id,
 				hobbiesList: [],
 				travelList: [],
 				notifications: [],
@@ -422,7 +437,6 @@ export const deleteNote = async (req: Request, res: Response) => {
 export const addMembers = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log("checking");
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -622,7 +636,6 @@ export const joinTeam = async (req: Request, res: Response) => {
 export const markNotificationAsRead = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log("checking");
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -1035,7 +1048,6 @@ export const resetDailyTasks = async () => {
 export const updateTeam = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log("checking");
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -1242,7 +1254,6 @@ export const addMessage = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		console.log("checking");
 		if (!userId) {
 			res.status(500).json({
 				isError: true,

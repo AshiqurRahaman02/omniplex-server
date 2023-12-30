@@ -38,7 +38,7 @@ todolistRouter.get("/get-todolist", getTodoList);
 // Routes to create team
 todolistRouter.post("/work/add-team", addWorkListTeam);
 todolistRouter.post("/project/add-team", addProjectListTeam);
-todolistRouter.post("/personal/add-team", addPersonalkListTeam);
+// todolistRouter.post("/personal/add-team", addPersonalkListTeam);
 todolistRouter.post("/hobbies/add-team", addHobbiesListTeam);
 todolistRouter.post("/travel/add-team", addTravelListTeam);
 
