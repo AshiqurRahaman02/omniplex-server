@@ -11,7 +11,7 @@ todolistRouter.get("/get-todolist", todolist_controllers_1.getTodoList);
 // Routes to create team
 todolistRouter.post("/work/add-team", todolist_controllers_1.addWorkListTeam);
 todolistRouter.post("/project/add-team", todolist_controllers_1.addProjectListTeam);
-todolistRouter.post("/personal/add-team", todolist_controllers_1.addPersonalkListTeam);
+// todolistRouter.post("/personal/add-team", addPersonalkListTeam);
 todolistRouter.post("/hobbies/add-team", todolist_controllers_1.addHobbiesListTeam);
 todolistRouter.post("/travel/add-team", todolist_controllers_1.addTravelListTeam);
 // Routes to create,update or delete Note

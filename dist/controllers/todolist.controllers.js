@@ -21,21 +21,21 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const getPopulatedTodoList = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const todoList = yield todolist_model_1.default.findOne({ userId })
         .populate({
-        path: "workList",
+        path: "workList projectList personalList",
         populate: {
             path: "dailyTasks reminders tasks",
             model: "Task",
         },
     })
         .populate({
-        path: "workList",
+        path: "workList projectList personalList",
         populate: {
             path: "goals",
             model: "Goal",
         },
     })
         .populate({
-        path: "workList",
+        path: "workList projectList personalList",
         populate: {
             path: "goals",
             populate: {
@@ -48,10 +48,10 @@ const getPopulatedTodoList = (userId) => __awaiter(void 0, void 0, void 0, funct
     return todoList;
 });
 const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        console.log("checking");
+        const userName = (_b = req.user) === null || _b === void 0 ? void 0 : _b.name;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -60,10 +60,24 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         let todolist = yield getPopulatedTodoList(userId);
         if (!todolist) {
+            const newTeam = new team_model_1.default({
+                isPublic: false,
+                name: userName,
+                details: "",
+                teamType: "personal",
+                createdBy: { creatorId: userId, creatorName: userName },
+                dailyTasks: [],
+                reminders: [],
+                tasks: [],
+                goals: [],
+                habits: { habitsId: [], tracks: [{}] },
+                financialsPlans: { budget: "", spends: [{}] },
+            });
+            const savedTeam = yield newTeam.save();
             todolist = new todolist_model_1.default({
                 userId,
                 workList: [],
-                projectList: [],
+                projectList: savedTeam._id,
                 hobbiesList: [],
                 travelList: [],
                 notifications: [],
@@ -80,9 +94,9 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.getTodoList = getTodoList;
 const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c;
+    var _c, _d;
     try {
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b._id;
+        const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -97,7 +111,7 @@ const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function
             password,
             details,
             teamType: "work",
-            createdBy: { creatorId: userId, creatorName: (_c = req.user) === null || _c === void 0 ? void 0 : _c.name },
+            createdBy: { creatorId: userId, creatorName: (_d = req.user) === null || _d === void 0 ? void 0 : _d.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -120,9 +134,9 @@ const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function
 });
 exports.addWorkListTeam = addWorkListTeam;
 const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d, _e;
+    var _e, _f;
     try {
-        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
+        const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -137,7 +151,7 @@ const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
             password,
             details,
             teamType: "project",
-            createdBy: { creatorId: userId, creatorName: (_e = req.user) === null || _e === void 0 ? void 0 : _e.name },
+            createdBy: { creatorId: userId, creatorName: (_f = req.user) === null || _f === void 0 ? void 0 : _f.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -160,9 +174,9 @@ const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.addProjectListTeam = addProjectListTeam;
 const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _f, _g;
+    var _g, _h;
     try {
-        const userId = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
+        const userId = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -177,7 +191,7 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
             password,
             details,
             teamType: "personal",
-            createdBy: { creatorId: userId, creatorName: (_g = req.user) === null || _g === void 0 ? void 0 : _g.name },
+            createdBy: { creatorId: userId, creatorName: (_h = req.user) === null || _h === void 0 ? void 0 : _h.name },
             dailyTasks: [],
             reminders: [],
             tasks: [],
@@ -200,9 +214,9 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
 });
 exports.addPersonalkListTeam = addPersonalkListTeam;
 const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j;
+    var _j, _k;
     try {
-        const userId = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
+        const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -217,7 +231,7 @@ const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
             password,
             details,
             teamType: "hobbies",
-            createdBy: { creatorId: userId, creatorName: (_j = req.user) === null || _j === void 0 ? void 0 : _j.name },
+            createdBy: { creatorId: userId, creatorName: (_k = req.user) === null || _k === void 0 ? void 0 : _k.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -239,9 +253,9 @@ const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.addHobbiesListTeam = addHobbiesListTeam;
 const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _k, _l;
+    var _l, _m;
     try {
-        const userId = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
+        const userId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -256,7 +270,7 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
             password,
             details,
             teamType: "travel",
-            createdBy: { creatorId: userId, creatorName: (_l = req.user) === null || _l === void 0 ? void 0 : _l.name },
+            createdBy: { creatorId: userId, creatorName: (_m = req.user) === null || _m === void 0 ? void 0 : _m.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -278,9 +292,9 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
 });
 exports.addTravelListTeam = addTravelListTeam;
 const addNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _m;
+    var _o;
     try {
-        const userId = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
+        const userId = (_o = req.user) === null || _o === void 0 ? void 0 : _o._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -321,9 +335,9 @@ const addNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addNote = addNote;
 const updateNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _o;
+    var _p;
     try {
-        const userId = (_o = req.user) === null || _o === void 0 ? void 0 : _o._id;
+        const userId = (_p = req.user) === null || _p === void 0 ? void 0 : _p._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -357,9 +371,9 @@ const updateNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateNote = updateNote;
 const deleteNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _p;
+    var _q;
     try {
-        const userId = (_p = req.user) === null || _p === void 0 ? void 0 : _p._id;
+        const userId = (_q = req.user) === null || _q === void 0 ? void 0 : _q._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -404,10 +418,9 @@ const deleteNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.deleteNote = deleteNote;
 const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _q, _r;
+    var _r, _s;
     try {
-        const userId = (_q = req.user) === null || _q === void 0 ? void 0 : _q._id;
-        console.log("checking");
+        const userId = (_r = req.user) === null || _r === void 0 ? void 0 : _r._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -465,7 +478,7 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         let newUpdate = {
             userId,
-            userName: ((_r = req.user) === null || _r === void 0 ? void 0 : _r.name) || "",
+            userName: ((_s = req.user) === null || _s === void 0 ? void 0 : _s.name) || "",
             message: `Invitations sent successfully`,
             updateType: "update",
             time: new Date().toISOString(),
@@ -486,10 +499,10 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMembers = addMembers;
 const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _s, _t, _u, _v;
+    var _t, _u, _v, _w;
     try {
-        const userId = (_s = req.user) === null || _s === void 0 ? void 0 : _s._id;
-        const userEmail = ((_t = req.user) === null || _t === void 0 ? void 0 : _t.email) || "";
+        const userId = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
+        const userEmail = ((_u = req.user) === null || _u === void 0 ? void 0 : _u.email) || "";
         if (!userId || !userEmail) {
             res.status(500).json({
                 isError: true,
@@ -553,12 +566,12 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 break;
         }
-        let newMember = { userId, userName: ((_u = req.user) === null || _u === void 0 ? void 0 : _u.name) || "" };
+        let newMember = { userId, userName: ((_v = req.user) === null || _v === void 0 ? void 0 : _v.name) || "" };
         team.allMembers.push(newMember);
         team.invitations = team.invitations.filter((email) => email !== userEmail);
         let newUpdate = {
             userId,
-            userName: ((_v = req.user) === null || _v === void 0 ? void 0 : _v.name) || "",
+            userName: ((_w = req.user) === null || _w === void 0 ? void 0 : _w.name) || "",
             message: `joined`,
             updateType: "update",
             time: new Date().toISOString(),
@@ -579,10 +592,9 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.joinTeam = joinTeam;
 const markNotificationAsRead = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _w;
+    var _x;
     try {
-        const userId = (_w = req.user) === null || _w === void 0 ? void 0 : _w._id;
-        console.log("checking");
+        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -620,9 +632,9 @@ const markNotificationAsRead = (req, res) => __awaiter(void 0, void 0, void 0, f
 });
 exports.markNotificationAsRead = markNotificationAsRead;
 const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _x, _y;
+    var _y, _z;
     try {
-        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
+        const userId = (_y = req.user) === null || _y === void 0 ? void 0 : _y._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -635,7 +647,7 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_y = req.user) === null || _y === void 0 ? void 0 : _y.name },
+            createdBy: { creatorId: userId, creatorName: (_z = req.user) === null || _z === void 0 ? void 0 : _z.name },
             deadline,
             taskType: "dailytask",
         });
@@ -655,9 +667,9 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.addDailyTask = addDailyTask;
 const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _z, _0;
+    var _0, _1;
     try {
-        const userId = (_z = req.user) === null || _z === void 0 ? void 0 : _z._id;
+        const userId = (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -670,7 +682,7 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_0 = req.user) === null || _0 === void 0 ? void 0 : _0.name },
+            createdBy: { creatorId: userId, creatorName: (_1 = req.user) === null || _1 === void 0 ? void 0 : _1.name },
             deadline,
             taskType: "reminder",
         });
@@ -690,9 +702,9 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.addReminder = addReminder;
 const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _1, _2;
+    var _2, _3;
     try {
-        const userId = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
+        const userId = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -705,7 +717,7 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.name },
+            createdBy: { creatorId: userId, creatorName: (_3 = req.user) === null || _3 === void 0 ? void 0 : _3.name },
             assignedTo: [],
             deadline,
             taskType: "task",
@@ -726,9 +738,9 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addTask = addTask;
 const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _3, _4;
+    var _4, _5;
     try {
-        const userId = (_3 = req.user) === null || _3 === void 0 ? void 0 : _3._id;
+        const userId = (_4 = req.user) === null || _4 === void 0 ? void 0 : _4._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -741,11 +753,11 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             steps = [];
         }
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _5;
+            var _6;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_5 = req.user) === null || _5 === void 0 ? void 0 : _5.name },
+                createdBy: { creatorId: userId, creatorName: (_6 = req.user) === null || _6 === void 0 ? void 0 : _6.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -755,7 +767,7 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newGoal = new goal_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_4 = req.user) === null || _4 === void 0 ? void 0 : _4.name },
+            createdBy: { creatorId: userId, creatorName: (_5 = req.user) === null || _5 === void 0 ? void 0 : _5.name },
             steps: createdTasks.map((task) => ({ taskId: task._id })),
             deadline,
             finalGoal,
@@ -776,9 +788,9 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addGoal = addGoal;
 const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _6;
+    var _7;
     try {
-        const userId = (_6 = req.user) === null || _6 === void 0 ? void 0 : _6._id;
+        const userId = (_7 = req.user) === null || _7 === void 0 ? void 0 : _7._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -795,11 +807,11 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // Create tasks for the steps
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _7;
+            var _8;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_7 = req.user) === null || _7 === void 0 ? void 0 : _7.name },
+                createdBy: { creatorId: userId, creatorName: (_8 = req.user) === null || _8 === void 0 ? void 0 : _8.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -817,9 +829,9 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSteps = addSteps;
 const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _8;
+    var _9;
     try {
-        const userId = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8._id;
+        const userId = (_9 = req.user) === null || _9 === void 0 ? void 0 : _9._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -837,11 +849,11 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // Create tasks for habits
         const createdTasks = yield Promise.all(habits.map((habit) => __awaiter(void 0, void 0, void 0, function* () {
-            var _9;
+            var _10;
             const newTask = new task_model_1.default({
                 name: habit.name,
                 details: habit.details,
-                createdBy: { creatorId: userId, creatorName: (_9 = req.user) === null || _9 === void 0 ? void 0 : _9.name },
+                createdBy: { creatorId: userId, creatorName: (_10 = req.user) === null || _10 === void 0 ? void 0 : _10.name },
                 deadline: habit.deadline,
                 taskType: "habit",
             });
@@ -940,10 +952,9 @@ const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.resetDailyTasks = resetDailyTasks;
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _10;
+    var _11;
     try {
-        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
-        console.log("checking");
+        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -968,9 +979,9 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _11;
+    var _12;
     try {
-        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
+        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1013,10 +1024,10 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateGoal = updateGoal;
 const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _12, _13;
+    var _13, _14;
     try {
-        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
-        const userName = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13.name;
+        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
+        const userName = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14.name;
         if (!userId || !userName) {
             res.status(500).json({
                 isError: true,
@@ -1074,12 +1085,12 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.updateTaskDone = updateTaskDone;
 const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _14, _15;
+    var _15, _16;
     try {
         const { teamId } = req.params;
         const { message } = req.body;
-        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
-        const userName = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15.name;
+        const userId = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15._id;
+        const userName = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16.name;
         // Check if userId and userName are present
         if (!userId || !userName) {
             return res.status(500).json({
@@ -1121,10 +1132,9 @@ const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMessage = addMessage;
 const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _16;
+    var _17;
     try {
-        const userId = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16._id;
-        console.log("checking");
+        const userId = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
