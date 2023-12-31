@@ -72,6 +72,20 @@ const teamSchema = new mongoose_1.Schema({
                 ],
             },
         ],
+        totalSaving: String,
+        savings: [
+            {
+                date: String,
+                allSavings: [
+                    {
+                        amount: String,
+                        amountType: String,
+                        usedFor: String,
+                        time: String,
+                    },
+                ],
+            },
+        ],
     },
     allMembers: [
         {
@@ -85,7 +99,15 @@ const teamSchema = new mongoose_1.Schema({
         },
     ],
     invitations: [String],
-    updates: [{ userId: String, userName: String, message: String, updateType: String, time: String }],
+    updates: [
+        {
+            userId: String,
+            userName: String,
+            message: String,
+            updateType: String,
+            time: String,
+        },
+    ],
     dailyTasks: [
         {
             type: mongoose_1.default.Schema.Types.ObjectId,
