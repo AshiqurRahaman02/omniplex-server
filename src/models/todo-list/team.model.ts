@@ -9,7 +9,15 @@ export interface ITeam extends Document {
 	createdBy: { creatorId: string; creatorName: string };
 	allMembers: [{ userId: string; userName: string }];
 	invitations: [string];
-	updates: [{ userId: string; userName: string; message:string; updateType: string; time:string }];
+	updates: [
+		{
+			userId: string;
+			userName: string;
+			message: string;
+			updateType: string;
+			time: string;
+		}
+	];
 	dailyTasks: [string];
 	reminders: [string];
 	tasks: [string];
@@ -21,6 +29,20 @@ export interface ITeam extends Document {
 			{
 				date: string;
 				allSpends: [
+					{
+						amount: string;
+						amountType: string;
+						usedFor: string;
+						time: string;
+					}
+				];
+			}
+		];
+		totalSaving: string;
+		savings: [
+			{
+				date: string;
+				allSavings: [
 					{
 						amount: string;
 						amountType: string;
@@ -82,6 +104,20 @@ const teamSchema: Schema = new Schema(
 					],
 				},
 			],
+			totalSaving: String,
+			savings: [
+				{
+					date: String,
+					allSavings: [
+						{
+							amount: String,
+							amountType: String,
+							usedFor: String,
+							time: String,
+						},
+					],
+				},
+			],
 		},
 		allMembers: [
 			{
@@ -95,7 +131,15 @@ const teamSchema: Schema = new Schema(
 			},
 		],
 		invitations: [String],
-		updates: [{ userId: String, userName: String,message:String, updateType: String, time:String }],
+		updates: [
+			{
+				userId: String,
+				userName: String,
+				message: String,
+				updateType: String,
+				time: String,
+			},
+		],
 		dailyTasks: [
 			{
 				type: mongoose.Schema.Types.ObjectId,

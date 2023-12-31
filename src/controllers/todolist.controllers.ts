@@ -989,6 +989,14 @@ export const updateBudget = async (req: Request, res: Response) => {
 };
 export const addSpends = async (req: Request, res: Response) => {
 	try {
+
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
 		const teamId = req.params.teamId;
 		const { spends } = req.body;
 
@@ -1016,10 +1024,61 @@ export const addSpends = async (req: Request, res: Response) => {
 		// Save the updated team
 		await team.save();
 
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
 		res.status(200).json({
 			isError: false,
 			message: "Spends added successfully",
-			team,
+			todoList: updatedTodolist,
+		});
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+export const addSavings = async (req: Request, res: Response) => {
+	try {
+
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const teamId = req.params.teamId;
+		const { savings } = req.body;
+
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Team not found" });
+		}
+
+		const todayDate = new Date().toISOString().split("T")[0];
+
+		const lastSpend = team.financialsPlans.savings.slice(-1)[0];
+
+		if (lastSpend && lastSpend.date === todayDate) {
+			lastSpend.allSavings.push(...savings);
+		} else {
+			team.financialsPlans.savings.push({
+				date: todayDate,
+				allSavings: savings,
+			});
+		}
+
+		// Save the updated team
+		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(200).json({
+			isError: false,
+			message: "Savings added successfully",
+			todoList: updatedTodolist,
 		});
 	} catch (error) {
 		console.error("Error:", error);

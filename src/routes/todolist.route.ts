@@ -11,6 +11,7 @@ import {
 	addPersonalkListTeam,
 	addProjectListTeam,
 	addReminder,
+	addSavings,
 	addSpends,
 	addSteps,
 	addTask,
@@ -59,6 +60,7 @@ todolistRouter.post("/habit/createHabit/:teamId", addHabit)
 
 // Route to update spends in financial plans
 todolistRouter.put("/financial/addSpend/:teamId", addSpends)
+todolistRouter.put("/financial/addSaving/:teamId", addSavings)
 
 // Route to update a team by ID
 todolistRouter.put("/team/update/:teamId", updateTeam);
