@@ -71,7 +71,7 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 tasks: [],
                 goals: [],
                 habits: { habitsId: [], tracks: [{}] },
-                financialsPlans: { budget: "", spends: [{}] },
+                financialsPlans: { budget: 0, spends: [{}], totalSaving: 0, savings: [{}] },
             });
             const savedTeam = yield newTeam.save();
             todolist = new todolist_model_1.default({
@@ -197,7 +197,7 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
             tasks: [],
             goals: [],
             habits: { habitsId: [], tracks: [{}] },
-            financialsPlans: { budget: "", spends: [{}] },
+            financialsPlans: { budget: 0, spends: [{}], totalSaving: 0, savings: [{}] },
         });
         const savedTeam = yield newTeam.save();
         const todoList = yield todolist_model_1.default.findOne({ userId });
@@ -839,7 +839,7 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         const teamId = req.params.teamId;
-        const { habits } = req.body;
+        const { habit } = req.body;
         // Find the team by ID
         const team = yield team_model_1.default.findById(teamId);
         if (!team) {
@@ -847,26 +847,13 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 .status(404)
                 .json({ isError: true, message: "Team not found" });
         }
-        // Create tasks for habits
-        const createdTasks = yield Promise.all(habits.map((habit) => __awaiter(void 0, void 0, void 0, function* () {
-            var _10;
-            const newTask = new task_model_1.default({
-                name: habit.name,
-                details: habit.details,
-                createdBy: { creatorId: userId, creatorName: (_10 = req.user) === null || _10 === void 0 ? void 0 : _10.name },
-                deadline: habit.deadline,
-                taskType: "habit",
-            });
-            return yield newTask.save();
-        })));
-        // Add the habit tasks to the team's habits collection
-        team.habits.habitsId.push(...createdTasks.map((task) => task._id));
-        // Save the updated team
+        team.habits.push(habit);
         yield team.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
         res.status(201).json({
             isError: false,
             message: "Habits added to the team successfully",
-            team,
+            todoList: updatedTodolist,
         });
     }
     catch (error) {
@@ -901,9 +888,9 @@ const updateBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.updateBudget = updateBudget;
 const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _11;
+    var _10;
     try {
-        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
+        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -911,7 +898,7 @@ const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         const teamId = req.params.teamId;
-        const { spends } = req.body;
+        const { spend } = req.body;
         const team = yield team_model_1.default.findById(teamId);
         if (!team) {
             return res
@@ -921,13 +908,20 @@ const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const todayDate = new Date().toISOString().split("T")[0];
         const lastSpend = team.financialsPlans.spends.slice(-1)[0];
         if (lastSpend && lastSpend.date === todayDate) {
-            lastSpend.allSpends.push(...spends);
+            lastSpend.allSpends.push(spend);
         }
         else {
             team.financialsPlans.spends.push({
                 date: todayDate,
-                allSpends: spends,
+                allSpends: [spend],
             });
+        }
+        console.log(spend);
+        if (spend.amountType === "income") {
+            team.financialsPlans.budget += spend.amount;
+        }
+        else if (spend.amountType === "expense") {
+            team.financialsPlans.budget -= spend.amount;
         }
         // Save the updated team
         yield team.save();
@@ -945,9 +939,9 @@ const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSpends = addSpends;
 const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _12;
+    var _11;
     try {
-        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
+        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -955,7 +949,7 @@ const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             });
         }
         const teamId = req.params.teamId;
-        const { savings } = req.body;
+        const { saving } = req.body;
         const team = yield team_model_1.default.findById(teamId);
         if (!team) {
             return res
@@ -965,13 +959,24 @@ const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const todayDate = new Date().toISOString().split("T")[0];
         const lastSpend = team.financialsPlans.savings.slice(-1)[0];
         if (lastSpend && lastSpend.date === todayDate) {
-            lastSpend.allSavings.push(...savings);
+            lastSpend.allSavings.push(saving);
         }
         else {
             team.financialsPlans.savings.push({
                 date: todayDate,
-                allSavings: savings,
+                allSavings: [saving],
             });
+        }
+        if (!team.financialsPlans.totalSaving) {
+            team.financialsPlans.totalSaving = 0;
+        }
+        if (saving.amountType === "income") {
+            team.financialsPlans.totalSaving += saving.amount;
+            team.financialsPlans.budget -= saving.amount;
+        }
+        else if (saving.amountType === "expense") {
+            team.financialsPlans.totalSaving -= saving.amount;
+            team.financialsPlans.budget += saving.amount;
         }
         // Save the updated team
         yield team.save();
@@ -1005,9 +1010,9 @@ const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.resetDailyTasks = resetDailyTasks;
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _13;
+    var _12;
     try {
-        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
+        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1032,9 +1037,9 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _14;
+    var _13;
     try {
-        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
+        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1077,10 +1082,10 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateGoal = updateGoal;
 const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _15, _16;
+    var _14, _15;
     try {
-        const userId = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15._id;
-        const userName = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16.name;
+        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
+        const userName = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15.name;
         if (!userId || !userName) {
             res.status(500).json({
                 isError: true,
@@ -1138,12 +1143,12 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.updateTaskDone = updateTaskDone;
 const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _17, _18;
+    var _16, _17;
     try {
         const { teamId } = req.params;
         const { message } = req.body;
-        const userId = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17._id;
-        const userName = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18.name;
+        const userId = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16._id;
+        const userName = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17.name;
         // Check if userId and userName are present
         if (!userId || !userName) {
             return res.status(500).json({
@@ -1185,9 +1190,9 @@ const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMessage = addMessage;
 const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _19;
+    var _18;
     try {
-        const userId = (_19 = req.user) === null || _19 === void 0 ? void 0 : _19._id;
+        const userId = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,

@@ -53,12 +53,9 @@ const teamSchema = new mongoose_1.Schema({
             required: true,
         },
     },
-    habits: {
-        habitsId: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "Task" }],
-        tracks: [{}],
-    },
+    habits: [{ name: String, color: String, tracks: [{ date: String, totalTime: Number }] }],
     financialsPlans: {
-        budget: String,
+        budget: Number,
         spends: [
             {
                 date: String,
@@ -72,7 +69,7 @@ const teamSchema = new mongoose_1.Schema({
                 ],
             },
         ],
-        totalSaving: String,
+        totalSaving: Number,
         savings: [
             {
                 date: String,

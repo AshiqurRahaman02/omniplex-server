@@ -22,9 +22,9 @@ export interface ITeam extends Document {
 	reminders: [string];
 	tasks: [string];
 	goals: [string];
-	habits: { habitsId: [string]; tracks: [{}] };
+	habits: [{ name: string;color:string, tracks: [{date:string,totalTime:Number}] }];
 	financialsPlans: {
-		budget: string;
+		budget: number;
 		spends: [
 			{
 				date: string;
@@ -38,7 +38,7 @@ export interface ITeam extends Document {
 				];
 			}
 		];
-		totalSaving: string;
+		totalSaving: number;
 		savings: [
 			{
 				date: string;
@@ -85,12 +85,9 @@ const teamSchema: Schema = new Schema(
 				required: true,
 			},
 		},
-		habits: {
-			habitsId: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
-			tracks: [{}],
-		},
+		habits: [{ name: String,color:String, tracks: [{date:String,totalTime:Number}] }],
 		financialsPlans: {
-			budget: String,
+			budget: Number,
 			spends: [
 				{
 					date: String,
@@ -104,7 +101,7 @@ const teamSchema: Schema = new Schema(
 					],
 				},
 			],
-			totalSaving: String,
+			totalSaving: Number,
 			savings: [
 				{
 					date: String,
