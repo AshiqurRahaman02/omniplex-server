@@ -61,7 +61,7 @@ export const getTodoList = async (req: Request, res: Response) => {
 				tasks: [],
 				goals: [],
 				habits: { habitsId: [], tracks: [{}] },
-				financialsPlans: { budget: "", spends: [{}] },
+				financialsPlans: { budget: 0, spends: [{}],totalSaving: 0, savings:[{}] },
 			});
 			const savedTeam = await newTeam.save();
 
@@ -197,7 +197,7 @@ export const addPersonalkListTeam = async (req: Request, res: Response) => {
 			tasks: [],
 			goals: [],
 			habits: { habitsId: [], tracks: [{}] },
-			financialsPlans: { budget: "", spends: [{}] },
+			financialsPlans: { budget: 0, spends: [{}],totalSaving: 0, savings:[{}] },
 		});
 		const savedTeam = await newTeam.save();
 
@@ -918,7 +918,7 @@ export const addHabit = async (req: Request, res: Response) => {
 		}
 
 		const teamId = req.params.teamId;
-		const { habits } = req.body;
+		const { habit } = req.body;
 
 		// Find the team by ID
 		const team = await TeamModel.findById(teamId);
@@ -929,30 +929,17 @@ export const addHabit = async (req: Request, res: Response) => {
 				.json({ isError: true, message: "Team not found" });
 		}
 
-		// Create tasks for habits
-		const createdTasks = await Promise.all(
-			habits.map(async (habit: any) => {
-				const newTask = new TaskModel({
-					name: habit.name,
-					details: habit.details,
-					createdBy: { creatorId: userId, creatorName: req.user?.name },
-					deadline: habit.deadline,
-					taskType: "habit",
-				});
-				return await newTask.save();
-			})
-		);
 
-		// Add the habit tasks to the team's habits collection
-		team.habits.habitsId.push(...createdTasks.map((task) => task._id));
+		team.habits.push(habit);
 
-		// Save the updated team
 		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(201).json({
 			isError: false,
-			message: "Habits added to the team successfully",
-			team,
+			message: "Habits added successfully",
+			todoList: updatedTodolist,
 		});
 	} catch (error) {
 		console.error("Error:", error);
@@ -998,7 +985,7 @@ export const addSpends = async (req: Request, res: Response) => {
 			});
 		}
 		const teamId = req.params.teamId;
-		const { spends } = req.body;
+		const { spend } = req.body;
 
 		const team = await TeamModel.findById(teamId);
 
@@ -1013,12 +1000,21 @@ export const addSpends = async (req: Request, res: Response) => {
 		const lastSpend = team.financialsPlans.spends.slice(-1)[0];
 
 		if (lastSpend && lastSpend.date === todayDate) {
-			lastSpend.allSpends.push(...spends);
+			lastSpend.allSpends.push(spend);
 		} else {
 			team.financialsPlans.spends.push({
 				date: todayDate,
-				allSpends: spends,
+				allSpends: [spend],
 			});
+		}
+
+		console.log(spend)
+
+		if(spend.amountType === "income"){
+			team.financialsPlans.budget += spend.amount
+		}else
+		if(spend.amountType === "expense"){
+			team.financialsPlans.budget -= spend.amount
 		}
 
 		// Save the updated team
@@ -1047,7 +1043,7 @@ export const addSavings = async (req: Request, res: Response) => {
 			});
 		}
 		const teamId = req.params.teamId;
-		const { savings } = req.body;
+		const { saving } = req.body;
 
 		const team = await TeamModel.findById(teamId);
 
@@ -1062,14 +1058,26 @@ export const addSavings = async (req: Request, res: Response) => {
 		const lastSpend = team.financialsPlans.savings.slice(-1)[0];
 
 		if (lastSpend && lastSpend.date === todayDate) {
-			lastSpend.allSavings.push(...savings);
+			lastSpend.allSavings.push(saving);
 		} else {
 			team.financialsPlans.savings.push({
 				date: todayDate,
-				allSavings: savings,
+				allSavings: [saving],
 			});
 		}
 
+		if(!team.financialsPlans.totalSaving){
+			team.financialsPlans.totalSaving=0
+		}
+		
+		if(saving.amountType === "income"){
+			team.financialsPlans.totalSaving += saving.amount
+			team.financialsPlans.budget -= saving.amount
+		}else
+		if(saving.amountType === "expense"){
+			team.financialsPlans.totalSaving -= saving.amount
+			team.financialsPlans.budget += saving.amount
+		}
 		// Save the updated team
 		await team.save();
 
