@@ -22,7 +22,7 @@ export interface ITeam extends Document {
 	reminders: [string];
 	tasks: [string];
 	goals: [string];
-	habits: [{ name: string;color:string, tracks: [{date:string,totalTime:Number}] }];
+	habits: [{_id:string, name: string;color:string, tracks: [{date:string,totalTime:Number}] }];
 	financialsPlans: {
 		budget: number;
 		spends: [

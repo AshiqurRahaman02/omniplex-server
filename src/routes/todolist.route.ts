@@ -25,6 +25,7 @@ import {
 	joinTeam,
 	markNotificationAsRead,
 	updateGoal,
+	updateHabit,
 	updateNote,
 	updateTask,
 	updateTaskDone,
@@ -57,6 +58,7 @@ todolistRouter.post("/goal/addSteps/:goalId", addSteps)
 
 // Route to add habits to a team by Id
 todolistRouter.post("/habit/createHabit/:teamId", addHabit)
+todolistRouter.put('/habit/updateHabit/:teamId/:habitId',updateHabit)
 
 // Route to update spends in financial plans
 todolistRouter.put("/financial/addSpend/:teamId", addSpends)

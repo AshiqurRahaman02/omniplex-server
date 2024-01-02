@@ -26,6 +26,7 @@ todolistRouter.post("/goal/createTask/:teamId", todolist_controllers_1.addGoal);
 todolistRouter.post("/goal/addSteps/:goalId", todolist_controllers_1.addSteps);
 // Route to add habits to a team by Id
 todolistRouter.post("/habit/createHabit/:teamId", todolist_controllers_1.addHabit);
+todolistRouter.put('/habit/updateHabit/:teamId/:habitId', todolist_controllers_1.updateHabit);
 // Route to update spends in financial plans
 todolistRouter.put("/financial/addSpend/:teamId", todolist_controllers_1.addSpends);
 todolistRouter.put("/financial/addSaving/:teamId", todolist_controllers_1.addSavings);
