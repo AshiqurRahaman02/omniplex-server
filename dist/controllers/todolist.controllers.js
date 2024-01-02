@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.addMessage = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSavings = exports.addSpends = exports.updateBudget = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.markNotificationAsRead = exports.joinTeam = exports.addMembers = exports.deleteNote = exports.updateNote = exports.addNote = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
+exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.addMessage = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSavings = exports.addSpends = exports.updateBudget = exports.updateHabit = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.markNotificationAsRead = exports.joinTeam = exports.addMembers = exports.deleteNote = exports.updateNote = exports.addNote = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
 const todolist_model_1 = __importDefault(require("../models/todo-list/todolist.model"));
 const team_model_1 = __importDefault(require("../models/todo-list/team.model"));
 const goal_model_1 = __importDefault(require("../models/todo-list/goal.model"));
@@ -21,21 +21,21 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const getPopulatedTodoList = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const todoList = yield todolist_model_1.default.findOne({ userId })
         .populate({
-        path: "workList projectList personalList",
+        path: "workList projectList personalList hobbiesList travelList",
         populate: {
             path: "dailyTasks reminders tasks",
             model: "Task",
         },
     })
         .populate({
-        path: "workList projectList personalList",
+        path: "workList projectList personalList hobbiesList travelList",
         populate: {
             path: "goals",
             model: "Goal",
         },
     })
         .populate({
-        path: "workList projectList personalList",
+        path: "workList projectList personalList hobbiesList travelList",
         populate: {
             path: "goals",
             populate: {
@@ -71,7 +71,12 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 tasks: [],
                 goals: [],
                 habits: { habitsId: [], tracks: [{}] },
-                financialsPlans: { budget: 0, spends: [{}], totalSaving: 0, savings: [{}] },
+                financialsPlans: {
+                    budget: 0,
+                    spends: [{}],
+                    totalSaving: 0,
+                    savings: [{}],
+                },
             });
             const savedTeam = yield newTeam.save();
             todolist = new todolist_model_1.default({
@@ -197,7 +202,12 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
             tasks: [],
             goals: [],
             habits: { habitsId: [], tracks: [{}] },
-            financialsPlans: { budget: 0, spends: [{}], totalSaving: 0, savings: [{}] },
+            financialsPlans: {
+                budget: 0,
+                spends: [{}],
+                totalSaving: 0,
+                savings: [{}],
+            },
         });
         const savedTeam = yield newTeam.save();
         const todoList = yield todolist_model_1.default.findOne({ userId });
@@ -205,7 +215,8 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
             todoList.personalList = savedTeam._id;
             yield todoList.save();
         }
-        res.status(201).json({ isError: false, team: savedTeam });
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({ isError: false, todoList: updatedTodolist });
     }
     catch (error) {
         console.error("Error:", error);
@@ -244,7 +255,8 @@ const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
             todoList.hobbiesList.push(savedTeam._id);
             yield todoList.save();
         }
-        res.status(201).json({ isError: false, team: savedTeam });
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({ isError: false, todoList: updatedTodolist });
     }
     catch (error) {
         console.error("Error:", error);
@@ -283,7 +295,8 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
             todoList.travelList.push(savedTeam._id);
             yield todoList.save();
         }
-        res.status(201).json({ isError: false, team: savedTeam });
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        res.status(201).json({ isError: false, todoList: updatedTodolist });
     }
     catch (error) {
         console.error("Error:", error);
@@ -852,7 +865,7 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const updatedTodolist = yield getPopulatedTodoList(userId);
         res.status(201).json({
             isError: false,
-            message: "Habits added to the team successfully",
+            message: "Habits added successfully",
             todoList: updatedTodolist,
         });
     }
@@ -862,6 +875,55 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.addHabit = addHabit;
+const updateHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _10;
+    try {
+        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        const { teamId, habitId } = req.params;
+        const { totalTime } = req.body;
+        const team = yield team_model_1.default.findById(teamId);
+        if (!team) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Team not found" });
+        }
+        const habitIndex = team.habits.findIndex((habit) => habit._id.toString() === habitId);
+        if (habitIndex === -1) {
+            return res
+                .status(404)
+                .json({ isError: true, message: "Habit not found in the team" });
+        }
+        const todayDate = new Date().toISOString().split("T")[0];
+        const lastTrack = team.habits[habitIndex].tracks.slice(-1)[0];
+        if (lastTrack && lastTrack.date === todayDate) {
+            lastTrack.totalTime = totalTime;
+        }
+        else {
+            team.habits[habitIndex].tracks.push({
+                date: todayDate,
+                totalTime: totalTime,
+            });
+        }
+        yield team.save();
+        const updatedTodolist = yield getPopulatedTodoList(userId);
+        return res
+            .status(200)
+            .json({ isError: false, todoList: updatedTodolist });
+    }
+    catch (error) {
+        console.error(error);
+        return res
+            .status(500)
+            .json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.updateHabit = updateHabit;
 const updateBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const teamId = req.params.teamId;
@@ -888,9 +950,9 @@ const updateBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.updateBudget = updateBudget;
 const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _10;
+    var _11;
     try {
-        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
+        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -939,9 +1001,9 @@ const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSpends = addSpends;
 const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _11;
+    var _12;
     try {
-        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
+        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1010,9 +1072,9 @@ const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.resetDailyTasks = resetDailyTasks;
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _12;
+    var _13;
     try {
-        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
+        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1037,9 +1099,9 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _13;
+    var _14;
     try {
-        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
+        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1082,10 +1144,10 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateGoal = updateGoal;
 const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _14, _15;
+    var _15, _16;
     try {
-        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
-        const userName = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15.name;
+        const userId = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15._id;
+        const userName = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16.name;
         if (!userId || !userName) {
             res.status(500).json({
                 isError: true,
@@ -1143,12 +1205,12 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.updateTaskDone = updateTaskDone;
 const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _16, _17;
+    var _17, _18;
     try {
         const { teamId } = req.params;
         const { message } = req.body;
-        const userId = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16._id;
-        const userName = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17.name;
+        const userId = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17._id;
+        const userName = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18.name;
         // Check if userId and userName are present
         if (!userId || !userName) {
             return res.status(500).json({
@@ -1190,9 +1252,9 @@ const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMessage = addMessage;
 const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _18;
+    var _19;
     try {
-        const userId = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18._id;
+        const userId = (_19 = req.user) === null || _19 === void 0 ? void 0 : _19._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1246,7 +1308,15 @@ const deleteGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.deleteGoal = deleteGoal;
 const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _20;
     try {
+        const userId = (_20 = req.user) === null || _20 === void 0 ? void 0 : _20._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
         const teamId = req.params.teamId;
         const team = yield team_model_1.default.findById(teamId);
         if (!team) {
@@ -1273,10 +1343,11 @@ const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         })));
         // Delete the team by ID
         const deletedTeam = yield team_model_1.default.findByIdAndDelete(teamId);
+        const updatedTodolist = yield getPopulatedTodoList(userId);
         res.status(200).json({
             isError: false,
             message: "Team deleted successfully",
-            deletedTeam,
+            todoList: updatedTodolist,
         });
     }
     catch (error) {

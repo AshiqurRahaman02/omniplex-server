@@ -8,21 +8,21 @@ import UserModel from "../models/user.model";
 const getPopulatedTodoList = async (userId: string) => {
 	const todoList = await TodoListModel.findOne({ userId })
 		.populate({
-			path: "workList projectList personalList",
+			path: "workList projectList personalList hobbiesList travelList",
 			populate: {
 				path: "dailyTasks reminders tasks",
 				model: "Task",
 			},
 		})
 		.populate({
-			path: "workList projectList personalList",
+			path: "workList projectList personalList hobbiesList travelList",
 			populate: {
 				path: "goals",
 				model: "Goal",
 			},
 		})
 		.populate({
-			path: "workList projectList personalList",
+			path: "workList projectList personalList hobbiesList travelList",
 			populate: {
 				path: "goals",
 				populate: {
@@ -39,7 +39,7 @@ const getPopulatedTodoList = async (userId: string) => {
 export const getTodoList = async (req: Request, res: Response) => {
 	try {
 		const userId = req.user?._id;
-		const userName = req.user?.name
+		const userName = req.user?.name;
 		if (!userId) {
 			res.status(500).json({
 				isError: true,
@@ -49,11 +49,11 @@ export const getTodoList = async (req: Request, res: Response) => {
 
 		let todolist = await getPopulatedTodoList(userId);
 
-		if (!todolist ) {
+		if (!todolist) {
 			const newTeam = new TeamModel({
 				isPublic: false,
-				name:userName,
-				details:"",
+				name: userName,
+				details: "",
 				teamType: "personal",
 				createdBy: { creatorId: userId, creatorName: userName },
 				dailyTasks: [],
@@ -61,7 +61,12 @@ export const getTodoList = async (req: Request, res: Response) => {
 				tasks: [],
 				goals: [],
 				habits: { habitsId: [], tracks: [{}] },
-				financialsPlans: { budget: 0, spends: [{}],totalSaving: 0, savings:[{}] },
+				financialsPlans: {
+					budget: 0,
+					spends: [{}],
+					totalSaving: 0,
+					savings: [{}],
+				},
 			});
 			const savedTeam = await newTeam.save();
 
@@ -197,7 +202,12 @@ export const addPersonalkListTeam = async (req: Request, res: Response) => {
 			tasks: [],
 			goals: [],
 			habits: { habitsId: [], tracks: [{}] },
-			financialsPlans: { budget: 0, spends: [{}],totalSaving: 0, savings:[{}] },
+			financialsPlans: {
+				budget: 0,
+				spends: [{}],
+				totalSaving: 0,
+				savings: [{}],
+			},
 		});
 		const savedTeam = await newTeam.save();
 
@@ -209,7 +219,9 @@ export const addPersonalkListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		res.status(201).json({ isError: false, team: savedTeam });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -251,7 +263,9 @@ export const addHobbiesListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		res.status(201).json({ isError: false, team: savedTeam });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -293,7 +307,9 @@ export const addTravelListTeam = async (req: Request, res: Response) => {
 			await todoList.save();
 		}
 
-		res.status(201).json({ isError: false, team: savedTeam });
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		res.status(201).json({ isError: false, todoList: updatedTodolist });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -355,7 +371,6 @@ export const updateNote = async (req: Request, res: Response) => {
 		}
 		const { notes } = req.body;
 
-
 		const todolist = await TodoListModel.findOne({ userId });
 
 		if (!todolist) {
@@ -365,7 +380,7 @@ export const updateNote = async (req: Request, res: Response) => {
 			});
 		}
 
-		todolist.notes=notes
+		todolist.notes = notes;
 
 		await todolist.save();
 
@@ -929,7 +944,6 @@ export const addHabit = async (req: Request, res: Response) => {
 				.json({ isError: true, message: "Team not found" });
 		}
 
-
 		team.habits.push(habit);
 
 		await team.save();
@@ -944,6 +958,63 @@ export const addHabit = async (req: Request, res: Response) => {
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+export const updateHabit = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+		const { teamId, habitId } = req.params;
+		const { totalTime } = req.body;
+
+		const team = await TeamModel.findById(teamId);
+
+		if (!team) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Team not found" });
+		}
+
+		const habitIndex = team.habits.findIndex(
+			(habit) => habit._id.toString() === habitId
+		);
+
+		if (habitIndex === -1) {
+			return res
+				.status(404)
+				.json({ isError: true, message: "Habit not found in the team" });
+		}
+
+		const todayDate = new Date().toISOString().split("T")[0];
+
+		const lastTrack = team.habits[habitIndex].tracks.slice(-1)[0];
+
+		if (lastTrack && lastTrack.date === todayDate) {
+			lastTrack.totalTime = totalTime;
+		} else {
+			team.habits[habitIndex].tracks.push({
+				date: todayDate,
+				totalTime: totalTime,
+			});
+		}
+
+		await team.save();
+
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
+		return res
+			.status(200)
+			.json({ isError: false, todoList: updatedTodolist });
+	} catch (error) {
+		console.error(error);
+		return res
+			.status(500)
+			.json({ isError: true, message: "Internal Server Error" });
 	}
 };
 export const updateBudget = async (req: Request, res: Response) => {
@@ -976,7 +1047,6 @@ export const updateBudget = async (req: Request, res: Response) => {
 };
 export const addSpends = async (req: Request, res: Response) => {
 	try {
-
 		const userId = req.user?._id;
 		if (!userId) {
 			res.status(500).json({
@@ -1008,13 +1078,12 @@ export const addSpends = async (req: Request, res: Response) => {
 			});
 		}
 
-		console.log(spend)
+		console.log(spend);
 
-		if(spend.amountType === "income"){
-			team.financialsPlans.budget += spend.amount
-		}else
-		if(spend.amountType === "expense"){
-			team.financialsPlans.budget -= spend.amount
+		if (spend.amountType === "income") {
+			team.financialsPlans.budget += spend.amount;
+		} else if (spend.amountType === "expense") {
+			team.financialsPlans.budget -= spend.amount;
 		}
 
 		// Save the updated team
@@ -1034,7 +1103,6 @@ export const addSpends = async (req: Request, res: Response) => {
 };
 export const addSavings = async (req: Request, res: Response) => {
 	try {
-
 		const userId = req.user?._id;
 		if (!userId) {
 			res.status(500).json({
@@ -1066,17 +1134,16 @@ export const addSavings = async (req: Request, res: Response) => {
 			});
 		}
 
-		if(!team.financialsPlans.totalSaving){
-			team.financialsPlans.totalSaving=0
+		if (!team.financialsPlans.totalSaving) {
+			team.financialsPlans.totalSaving = 0;
 		}
-		
-		if(saving.amountType === "income"){
-			team.financialsPlans.totalSaving += saving.amount
-			team.financialsPlans.budget -= saving.amount
-		}else
-		if(saving.amountType === "expense"){
-			team.financialsPlans.totalSaving -= saving.amount
-			team.financialsPlans.budget += saving.amount
+
+		if (saving.amountType === "income") {
+			team.financialsPlans.totalSaving += saving.amount;
+			team.financialsPlans.budget -= saving.amount;
+		} else if (saving.amountType === "expense") {
+			team.financialsPlans.totalSaving -= saving.amount;
+			team.financialsPlans.budget += saving.amount;
 		}
 		// Save the updated team
 		await team.save();
@@ -1381,6 +1448,14 @@ export const deleteGoal = async (req: Request, res: Response) => {
 };
 export const deleteTeam = async (req: Request, res: Response) => {
 	try {
+
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
 		const teamId = req.params.teamId;
 
 		const team = await TeamModel.findById(teamId);
@@ -1420,10 +1495,13 @@ export const deleteTeam = async (req: Request, res: Response) => {
 		// Delete the team by ID
 		const deletedTeam = await TeamModel.findByIdAndDelete(teamId);
 
+		
+		const updatedTodolist = await getPopulatedTodoList(userId);
+
 		res.status(200).json({
 			isError: false,
 			message: "Team deleted successfully",
-			deletedTeam,
+			todoList: updatedTodolist,
 		});
 	} catch (error) {
 		console.error("Error:", error);
