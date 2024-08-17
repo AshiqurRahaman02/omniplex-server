@@ -16,13 +16,11 @@ export const sendMail = (req: Request, res: Response, next: NextFunction) => {
 	// Send email
 	transporter.sendMail(mailOptions, (error: any, info: any) => {
 		if (error) {
-			console.error(error);
 			res.status(500).json({
 				isError: true,
 				massage: "Error sending email",
 			});
 		} else {
-			console.log("Email sent: " + info.response);
 			res.status(200).json({ isError: false, massage: "Email sent" });
 		}
 	});

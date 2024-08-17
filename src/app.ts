@@ -7,6 +7,7 @@ import mailRouter from "./routes/omniplex.mail.route";
 import todolistRouter from "./routes/todolist.route";
 import { verifyToken } from "./middlewares/authentication.middlewares";
 import roomRouter from "./routes/collabcraft.route";
+import { scheduleDailyTaskReset } from "./controllers/todolist.controllers";
 
 const app = express();
 
@@ -28,5 +29,8 @@ app.use("/mail", mailRouter);
 app.use("/todolist", verifyToken, todolistRouter);
 
 app.use("/room", verifyToken, roomRouter);
+
+
+scheduleDailyTaskReset()
 
 export default app;
