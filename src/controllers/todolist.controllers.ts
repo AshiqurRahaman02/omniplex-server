@@ -4,6 +4,7 @@ import TeamModel from "../models/todo-list/team.model";
 import GoalModel from "../models/todo-list/goal.model";
 import TaskModel from "../models/todo-list/task.model";
 import UserModel from "../models/user.model";
+import { transporter } from "../configs/omniplex.mail";
 
 const getPopulatedTodoList = async (userId: string) => {
 	const todoList = await TodoListModel.findOne({ userId })
@@ -34,6 +35,129 @@ const getPopulatedTodoList = async (userId: string) => {
 		.exec();
 
 	return todoList;
+};
+
+const getOnlyTasksList = async (userId: string) => {
+	const todoList = await TodoListModel.findOne({ userId })
+		.select("workList projectList personalList hobbiesList travelList")
+		.populate({
+			path: "workList projectList personalList hobbiesList travelList",
+			select: "dailyTasks reminders tasks goals",
+			populate: [
+				{
+					path: "dailyTasks reminders tasks goals",
+					select: "name taskType done",
+					match: { "done.isDone": false },
+				},
+				{
+					path: "goals",
+					select: "name details",
+					populate: {
+						path: "steps",
+						select: "name taskType done",
+						match: { "done.isDone": false },
+					},
+				},
+			],
+			options: { strictPopulate: false },
+		})
+		.exec();
+
+	return todoList;
+};
+
+const resetDailyTasks = async () => {
+	try {
+		const result = await TaskModel.updateMany(
+			{
+				taskType: "dailytask",
+				"done.isDone": true,
+			},
+			{
+				$set: { done: { isDone: false, doneBy: {}, time: "" } },
+			}
+		);
+
+		return {
+			isError: false,
+			message: `${result.modifiedCount} daily tasks reset successfully.`,
+		};
+	} catch (error) {
+		return {
+			isError: true,
+			message: "An error occurred while resetting daily tasks.",
+			error,
+		};
+	}
+};
+const getTimeUntilMidnight = () => {
+	const now = new Date();
+	const midnight = new Date();
+	midnight.setHours(24, 0, 0, 0);
+	return midnight.getTime() - now.getTime();
+};
+
+const sendErrorMail = (message:string) => {
+	let date = new Date().getDate();
+	const mailOptions = {
+		from: "omniplex.vercel@gmail.com",
+		to: "ashiqur999999@gmail.com",
+		subject: "[URGENT] Error Occurred During Daily Task Reset Process",
+		text: `Dear Team,
+
+		I hope this email finds you well.
+
+		I wanted to bring to your immediate attention that an error occurred during the execution of the daily task reset process scheduled for 12:00 AM. This process is critical for resetting tasks marked as "done" within our system.
+
+		Error Details:
+		- Date & Time of Occurrence: ${date} : 12:00 AM
+		- Error Message: ${message}
+		- Affected Task Type: Daily Task Reset
+
+		This issue might impact the functionality of daily tasks for all users, potentially leading to incorrect task statuses or delays in task processing.
+
+		Next Steps:
+		- Please investigate the root cause of this error at the earliest convenience.
+		- Let me know if any further information or assistance is needed from my end to resolve this issue.
+
+		Timely resolution of this issue is crucial to maintain the smooth operation of our task management system.
+
+		Best regards,
+		Omniplex`,
+	};
+
+	// Send email
+	transporter.sendMail(mailOptions, (error: any, info: any) => {
+		if (error) {
+			console.log({
+				isError: true,
+				massage: "Error sending email",
+			});
+		} else {
+			console.log({ isError: false, massage: "Email sent" });
+		}
+	});
+};
+
+export const scheduleDailyTaskReset = () => {
+	const timeUntilMidnight = getTimeUntilMidnight();
+
+	setTimeout(() => {
+		console.log("Running daily task reset at 12 AM");
+		resetDailyTasks().then((result) => {
+			console.log(result.message);
+			if(result.isError){
+				sendErrorMail(result.message)
+			}
+		});
+
+		setInterval(() => {
+			console.log("Running daily task reset at 12 AM");
+			resetDailyTasks().then((result) => {
+				console.log(result.message);
+			});
+		}, 24 * 60 * 60 * 1000);
+	}, timeUntilMidnight);
 };
 
 export const getTodoList = async (req: Request, res: Response) => {
@@ -84,6 +208,25 @@ export const getTodoList = async (req: Request, res: Response) => {
 		}
 
 		res.status(200).json({ isError: false, todolist });
+	} catch (error) {
+		console.error("Error:", error);
+		res.status(500).json({ isError: true, message: "Internal Server Error" });
+	}
+};
+
+export const getTaskList = async (req: Request, res: Response) => {
+	try {
+		const userId = req.user?._id;
+		if (!userId) {
+			res.status(500).json({
+				isError: true,
+				message: "Internal Server Error",
+			});
+		}
+
+		let taskList = await getOnlyTasksList(userId);
+
+		res.status(200).json({ isError: false, taskList });
 	} catch (error) {
 		console.error("Error:", error);
 		res.status(500).json({ isError: true, message: "Internal Server Error" });
@@ -1161,23 +1304,23 @@ export const addSavings = async (req: Request, res: Response) => {
 	}
 };
 
-export const resetDailyTasks = async () => {
-	// Find daily tasks that need to be reset
-	const tasksToReset = await TaskModel.find({
-		taskType: "dailytask",
-		"done.isDone": true,
-	});
+// export const resetDailyTasks = async () => {
+// 	// Find daily tasks that need to be reset
+// 	const tasksToReset = await TaskModel.find({
+// 		taskType: "dailytask",
+// 		"done.isDone": true,
+// 	});
 
-	// Reset tasks
-	tasksToReset.forEach(async (task: any) => {
-		task.done.isDone = false;
-		task.done.doneBy = {};
-		task.done.time = "";
-		await task.save();
-	});
+// 	// Reset tasks
+// 	tasksToReset.forEach(async (task: any) => {
+// 		task.done.isDone = false;
+// 		task.done.doneBy = {};
+// 		task.done.time = "";
+// 		await task.save();
+// 	});
 
-	console.log("Daily tasks reset successfully.");
-};
+// 	console.log("Daily tasks reset successfully.");
+// };
 
 export const updateTeam = async (req: Request, res: Response) => {
 	try {
@@ -1264,6 +1407,8 @@ export const updateGoal = async (req: Request, res: Response) => {
 
 export const updateTaskDone = async (req: Request, res: Response) => {
 	try {
+		const { type } = req.query;
+
 		const userId = req.user?._id;
 		const userName = req.user?.name;
 		if (!userId || !userName) {
@@ -1295,13 +1440,22 @@ export const updateTaskDone = async (req: Request, res: Response) => {
 
 			await task.save();
 
-			const updatedTodolist = await getPopulatedTodoList(userId);
+			if (type == "taskList") {
+				const updatedTaskList = await getOnlyTasksList(userId);
+				return res.status(201).json({
+					isError: false,
+					message: "Task updated successfully",
+					taskList: updatedTaskList,
+				});
+			} else {
+				const updatedTodolist = await getPopulatedTodoList(userId);
 
-			return res.status(200).json({
-				isError: false,
-				message: "Task marked as done",
-				todoList: updatedTodolist,
-			});
+				return res.status(200).json({
+					isError: false,
+					message: "Task marked as done",
+					todoList: updatedTodolist,
+				});
+			}
 		}
 
 		// If the task is already done, allow admin to update
@@ -1448,7 +1602,6 @@ export const deleteGoal = async (req: Request, res: Response) => {
 };
 export const deleteTeam = async (req: Request, res: Response) => {
 	try {
-
 		const userId = req.user?._id;
 		if (!userId) {
 			res.status(500).json({
@@ -1495,7 +1648,6 @@ export const deleteTeam = async (req: Request, res: Response) => {
 		// Delete the team by ID
 		const deletedTeam = await TeamModel.findByIdAndDelete(teamId);
 
-		
 		const updatedTodolist = await getPopulatedTodoList(userId);
 
 		res.status(200).json({

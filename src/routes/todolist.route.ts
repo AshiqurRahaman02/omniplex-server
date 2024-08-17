@@ -21,6 +21,7 @@ import {
 	deleteNote,
 	deleteTask,
 	deleteTeam,
+	getTaskList,
 	getTodoList,
 	joinTeam,
 	markNotificationAsRead,
@@ -36,6 +37,7 @@ const todolistRouter = express.Router();
 
 // Route to get or create a todo list by user ID
 todolistRouter.get("/get-todolist", getTodoList);
+todolistRouter.get("/get-tasklist", getTaskList);
 
 // Routes to create team
 todolistRouter.post("/work/add-team", addWorkListTeam);

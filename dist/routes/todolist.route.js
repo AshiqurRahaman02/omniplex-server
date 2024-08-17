@@ -8,6 +8,7 @@ const todolist_controllers_1 = require("../controllers/todolist.controllers");
 const todolistRouter = express_1.default.Router();
 // Route to get or create a todo list by user ID
 todolistRouter.get("/get-todolist", todolist_controllers_1.getTodoList);
+todolistRouter.get("/get-tasklist", todolist_controllers_1.getTaskList);
 // Routes to create team
 todolistRouter.post("/work/add-team", todolist_controllers_1.addWorkListTeam);
 todolistRouter.post("/project/add-team", todolist_controllers_1.addProjectListTeam);

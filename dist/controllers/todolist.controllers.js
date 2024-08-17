@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.addMessage = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.resetDailyTasks = exports.addSavings = exports.addSpends = exports.updateBudget = exports.updateHabit = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.markNotificationAsRead = exports.joinTeam = exports.addMembers = exports.deleteNote = exports.updateNote = exports.addNote = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTodoList = void 0;
+exports.deleteTeam = exports.deleteGoal = exports.deleteTask = exports.addMessage = exports.updateTaskDone = exports.updateGoal = exports.updateTask = exports.updateTeam = exports.addSavings = exports.addSpends = exports.updateBudget = exports.updateHabit = exports.addHabit = exports.addSteps = exports.addGoal = exports.addTask = exports.addReminder = exports.addDailyTask = exports.markNotificationAsRead = exports.joinTeam = exports.addMembers = exports.deleteNote = exports.updateNote = exports.addNote = exports.addTravelListTeam = exports.addHobbiesListTeam = exports.addPersonalkListTeam = exports.addProjectListTeam = exports.addWorkListTeam = exports.getTaskList = exports.getTodoList = exports.scheduleDailyTaskReset = void 0;
 const todolist_model_1 = __importDefault(require("../models/todo-list/todolist.model"));
 const team_model_1 = __importDefault(require("../models/todo-list/team.model"));
 const goal_model_1 = __importDefault(require("../models/todo-list/goal.model"));
 const task_model_1 = __importDefault(require("../models/todo-list/task.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
+const omniplex_mail_1 = require("../configs/omniplex.mail");
 const getPopulatedTodoList = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     const todoList = yield todolist_model_1.default.findOne({ userId })
         .populate({
@@ -47,6 +48,120 @@ const getPopulatedTodoList = (userId) => __awaiter(void 0, void 0, void 0, funct
         .exec();
     return todoList;
 });
+const getOnlyTasksList = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const todoList = yield todolist_model_1.default.findOne({ userId })
+        .select("workList projectList personalList hobbiesList travelList")
+        .populate({
+        path: "workList projectList personalList hobbiesList travelList",
+        select: "dailyTasks reminders tasks goals",
+        populate: [
+            {
+                path: "dailyTasks reminders tasks goals",
+                select: "name taskType done",
+                match: { "done.isDone": false },
+            },
+            {
+                path: "goals",
+                select: "name details",
+                populate: {
+                    path: "steps",
+                    select: "name taskType done",
+                    match: { "done.isDone": false },
+                },
+            },
+        ],
+        options: { strictPopulate: false },
+    })
+        .exec();
+    return todoList;
+});
+const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield task_model_1.default.updateMany({
+            taskType: "dailytask",
+            "done.isDone": true,
+        }, {
+            $set: { done: { isDone: false, doneBy: {}, time: "" } },
+        });
+        return {
+            isError: false,
+            message: `${result.modifiedCount} daily tasks reset successfully.`,
+        };
+    }
+    catch (error) {
+        return {
+            isError: true,
+            message: "An error occurred while resetting daily tasks.",
+            error,
+        };
+    }
+});
+const getTimeUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    return midnight.getTime() - now.getTime();
+};
+const sendErrorMail = (message) => {
+    let date = new Date().getDate();
+    const mailOptions = {
+        from: "omniplex.vercel@gmail.com",
+        to: "ashiqur999999@gmail.com",
+        subject: "[URGENT] Error Occurred During Daily Task Reset Process",
+        text: `Dear Team,
+
+		I hope this email finds you well.
+
+		I wanted to bring to your immediate attention that an error occurred during the execution of the daily task reset process scheduled for 12:00 AM. This process is critical for resetting tasks marked as "done" within our system.
+
+		Error Details:
+		- Date & Time of Occurrence: ${date} : 12:00 AM
+		- Error Message: ${message}
+		- Affected Task Type: Daily Task Reset
+
+		This issue might impact the functionality of daily tasks for all users, potentially leading to incorrect task statuses or delays in task processing.
+
+		Next Steps:
+		- Please investigate the root cause of this error at the earliest convenience.
+		- Let me know if any further information or assistance is needed from my end to resolve this issue.
+
+		Timely resolution of this issue is crucial to maintain the smooth operation of our task management system.
+
+		Best regards,
+		Omniplex`,
+    };
+    // Send email
+    omniplex_mail_1.transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log({
+                isError: true,
+                massage: "Error sending email",
+            });
+        }
+        else {
+            console.log({ isError: false, massage: "Email sent" });
+        }
+    });
+};
+const scheduleDailyTaskReset = () => {
+    const timeUntilMidnight = getTimeUntilMidnight();
+    setTimeout(() => {
+        console.log("Running daily task reset at 12 AM");
+        resetDailyTasks().then((result) => {
+            console.log(result.message);
+            if (result.isError) {
+                sendErrorMail(result.message);
+            }
+        });
+        setInterval(() => {
+            console.log("Running daily task reset at 12 AM");
+            resetDailyTasks().then((result) => {
+                console.log(result.message);
+            });
+        }, 24 * 60 * 60 * 1000);
+    }, timeUntilMidnight);
+};
+exports.scheduleDailyTaskReset = scheduleDailyTaskReset;
 const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
@@ -98,10 +213,29 @@ const getTodoList = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.getTodoList = getTodoList;
-const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d;
+const getTaskList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
     try {
         const userId = (_c = req.user) === null || _c === void 0 ? void 0 : _c._id;
+        if (!userId) {
+            res.status(500).json({
+                isError: true,
+                message: "Internal Server Error",
+            });
+        }
+        let taskList = yield getOnlyTasksList(userId);
+        res.status(200).json({ isError: false, taskList });
+    }
+    catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ isError: true, message: "Internal Server Error" });
+    }
+});
+exports.getTaskList = getTaskList;
+const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _d, _e;
+    try {
+        const userId = (_d = req.user) === null || _d === void 0 ? void 0 : _d._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -116,7 +250,7 @@ const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function
             password,
             details,
             teamType: "work",
-            createdBy: { creatorId: userId, creatorName: (_d = req.user) === null || _d === void 0 ? void 0 : _d.name },
+            createdBy: { creatorId: userId, creatorName: (_e = req.user) === null || _e === void 0 ? void 0 : _e.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -139,9 +273,9 @@ const addWorkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function
 });
 exports.addWorkListTeam = addWorkListTeam;
 const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e, _f;
+    var _f, _g;
     try {
-        const userId = (_e = req.user) === null || _e === void 0 ? void 0 : _e._id;
+        const userId = (_f = req.user) === null || _f === void 0 ? void 0 : _f._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -156,7 +290,7 @@ const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
             password,
             details,
             teamType: "project",
-            createdBy: { creatorId: userId, creatorName: (_f = req.user) === null || _f === void 0 ? void 0 : _f.name },
+            createdBy: { creatorId: userId, creatorName: (_g = req.user) === null || _g === void 0 ? void 0 : _g.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -179,9 +313,9 @@ const addProjectListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.addProjectListTeam = addProjectListTeam;
 const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _g, _h;
+    var _h, _j;
     try {
-        const userId = (_g = req.user) === null || _g === void 0 ? void 0 : _g._id;
+        const userId = (_h = req.user) === null || _h === void 0 ? void 0 : _h._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -196,7 +330,7 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
             password,
             details,
             teamType: "personal",
-            createdBy: { creatorId: userId, creatorName: (_h = req.user) === null || _h === void 0 ? void 0 : _h.name },
+            createdBy: { creatorId: userId, creatorName: (_j = req.user) === null || _j === void 0 ? void 0 : _j.name },
             dailyTasks: [],
             reminders: [],
             tasks: [],
@@ -225,9 +359,9 @@ const addPersonalkListTeam = (req, res) => __awaiter(void 0, void 0, void 0, fun
 });
 exports.addPersonalkListTeam = addPersonalkListTeam;
 const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _j, _k;
+    var _k, _l;
     try {
-        const userId = (_j = req.user) === null || _j === void 0 ? void 0 : _j._id;
+        const userId = (_k = req.user) === null || _k === void 0 ? void 0 : _k._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -242,7 +376,7 @@ const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
             password,
             details,
             teamType: "hobbies",
-            createdBy: { creatorId: userId, creatorName: (_k = req.user) === null || _k === void 0 ? void 0 : _k.name },
+            createdBy: { creatorId: userId, creatorName: (_l = req.user) === null || _l === void 0 ? void 0 : _l.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -265,9 +399,9 @@ const addHobbiesListTeam = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.addHobbiesListTeam = addHobbiesListTeam;
 const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _l, _m;
+    var _m, _o;
     try {
-        const userId = (_l = req.user) === null || _l === void 0 ? void 0 : _l._id;
+        const userId = (_m = req.user) === null || _m === void 0 ? void 0 : _m._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -282,7 +416,7 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
             password,
             details,
             teamType: "travel",
-            createdBy: { creatorId: userId, creatorName: (_m = req.user) === null || _m === void 0 ? void 0 : _m.name },
+            createdBy: { creatorId: userId, creatorName: (_o = req.user) === null || _o === void 0 ? void 0 : _o.name },
             allMembers: [],
             dailyTasks: [],
             reminders: [],
@@ -305,9 +439,9 @@ const addTravelListTeam = (req, res) => __awaiter(void 0, void 0, void 0, functi
 });
 exports.addTravelListTeam = addTravelListTeam;
 const addNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _o;
+    var _p;
     try {
-        const userId = (_o = req.user) === null || _o === void 0 ? void 0 : _o._id;
+        const userId = (_p = req.user) === null || _p === void 0 ? void 0 : _p._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -348,9 +482,9 @@ const addNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addNote = addNote;
 const updateNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _p;
+    var _q;
     try {
-        const userId = (_p = req.user) === null || _p === void 0 ? void 0 : _p._id;
+        const userId = (_q = req.user) === null || _q === void 0 ? void 0 : _q._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -384,9 +518,9 @@ const updateNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateNote = updateNote;
 const deleteNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _q;
+    var _r;
     try {
-        const userId = (_q = req.user) === null || _q === void 0 ? void 0 : _q._id;
+        const userId = (_r = req.user) === null || _r === void 0 ? void 0 : _r._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -431,9 +565,9 @@ const deleteNote = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.deleteNote = deleteNote;
 const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s;
+    var _s, _t;
     try {
-        const userId = (_r = req.user) === null || _r === void 0 ? void 0 : _r._id;
+        const userId = (_s = req.user) === null || _s === void 0 ? void 0 : _s._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -491,7 +625,7 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         let newUpdate = {
             userId,
-            userName: ((_s = req.user) === null || _s === void 0 ? void 0 : _s.name) || "",
+            userName: ((_t = req.user) === null || _t === void 0 ? void 0 : _t.name) || "",
             message: `Invitations sent successfully`,
             updateType: "update",
             time: new Date().toISOString(),
@@ -512,10 +646,10 @@ const addMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMembers = addMembers;
 const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _t, _u, _v, _w;
+    var _u, _v, _w, _x;
     try {
-        const userId = (_t = req.user) === null || _t === void 0 ? void 0 : _t._id;
-        const userEmail = ((_u = req.user) === null || _u === void 0 ? void 0 : _u.email) || "";
+        const userId = (_u = req.user) === null || _u === void 0 ? void 0 : _u._id;
+        const userEmail = ((_v = req.user) === null || _v === void 0 ? void 0 : _v.email) || "";
         if (!userId || !userEmail) {
             res.status(500).json({
                 isError: true,
@@ -579,12 +713,12 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 break;
         }
-        let newMember = { userId, userName: ((_v = req.user) === null || _v === void 0 ? void 0 : _v.name) || "" };
+        let newMember = { userId, userName: ((_w = req.user) === null || _w === void 0 ? void 0 : _w.name) || "" };
         team.allMembers.push(newMember);
         team.invitations = team.invitations.filter((email) => email !== userEmail);
         let newUpdate = {
             userId,
-            userName: ((_w = req.user) === null || _w === void 0 ? void 0 : _w.name) || "",
+            userName: ((_x = req.user) === null || _x === void 0 ? void 0 : _x.name) || "",
             message: `joined`,
             updateType: "update",
             time: new Date().toISOString(),
@@ -605,9 +739,9 @@ const joinTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.joinTeam = joinTeam;
 const markNotificationAsRead = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _x;
+    var _y;
     try {
-        const userId = (_x = req.user) === null || _x === void 0 ? void 0 : _x._id;
+        const userId = (_y = req.user) === null || _y === void 0 ? void 0 : _y._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -645,9 +779,9 @@ const markNotificationAsRead = (req, res) => __awaiter(void 0, void 0, void 0, f
 });
 exports.markNotificationAsRead = markNotificationAsRead;
 const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _y, _z;
+    var _z, _0;
     try {
-        const userId = (_y = req.user) === null || _y === void 0 ? void 0 : _y._id;
+        const userId = (_z = req.user) === null || _z === void 0 ? void 0 : _z._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -660,7 +794,7 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_z = req.user) === null || _z === void 0 ? void 0 : _z.name },
+            createdBy: { creatorId: userId, creatorName: (_0 = req.user) === null || _0 === void 0 ? void 0 : _0.name },
             deadline,
             taskType: "dailytask",
         });
@@ -680,9 +814,9 @@ const addDailyTask = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.addDailyTask = addDailyTask;
 const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _0, _1;
+    var _1, _2;
     try {
-        const userId = (_0 = req.user) === null || _0 === void 0 ? void 0 : _0._id;
+        const userId = (_1 = req.user) === null || _1 === void 0 ? void 0 : _1._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -695,7 +829,7 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_1 = req.user) === null || _1 === void 0 ? void 0 : _1.name },
+            createdBy: { creatorId: userId, creatorName: (_2 = req.user) === null || _2 === void 0 ? void 0 : _2.name },
             deadline,
             taskType: "reminder",
         });
@@ -715,9 +849,9 @@ const addReminder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.addReminder = addReminder;
 const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _2, _3;
+    var _3, _4;
     try {
-        const userId = (_2 = req.user) === null || _2 === void 0 ? void 0 : _2._id;
+        const userId = (_3 = req.user) === null || _3 === void 0 ? void 0 : _3._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -730,7 +864,7 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newTask = new task_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_3 = req.user) === null || _3 === void 0 ? void 0 : _3.name },
+            createdBy: { creatorId: userId, creatorName: (_4 = req.user) === null || _4 === void 0 ? void 0 : _4.name },
             assignedTo: [],
             deadline,
             taskType: "task",
@@ -751,9 +885,9 @@ const addTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addTask = addTask;
 const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _4, _5;
+    var _5, _6;
     try {
-        const userId = (_4 = req.user) === null || _4 === void 0 ? void 0 : _4._id;
+        const userId = (_5 = req.user) === null || _5 === void 0 ? void 0 : _5._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -766,11 +900,11 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             steps = [];
         }
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _6;
+            var _7;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_6 = req.user) === null || _6 === void 0 ? void 0 : _6.name },
+                createdBy: { creatorId: userId, creatorName: (_7 = req.user) === null || _7 === void 0 ? void 0 : _7.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -780,7 +914,7 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const newGoal = new goal_model_1.default({
             name,
             details,
-            createdBy: { creatorId: userId, creatorName: (_5 = req.user) === null || _5 === void 0 ? void 0 : _5.name },
+            createdBy: { creatorId: userId, creatorName: (_6 = req.user) === null || _6 === void 0 ? void 0 : _6.name },
             steps: createdTasks.map((task) => ({ taskId: task._id })),
             deadline,
             finalGoal,
@@ -801,9 +935,9 @@ const addGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addGoal = addGoal;
 const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _7;
+    var _8;
     try {
-        const userId = (_7 = req.user) === null || _7 === void 0 ? void 0 : _7._id;
+        const userId = (_8 = req.user) === null || _8 === void 0 ? void 0 : _8._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -820,11 +954,11 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         // Create tasks for the steps
         const createdTasks = yield Promise.all(steps.map((step) => __awaiter(void 0, void 0, void 0, function* () {
-            var _8;
+            var _9;
             const newTask = new task_model_1.default({
                 name: step.name,
                 details: step.details,
-                createdBy: { creatorId: userId, creatorName: (_8 = req.user) === null || _8 === void 0 ? void 0 : _8.name },
+                createdBy: { creatorId: userId, creatorName: (_9 = req.user) === null || _9 === void 0 ? void 0 : _9.name },
                 deadline: step.deadline,
                 taskType: "step",
             });
@@ -842,9 +976,9 @@ const addSteps = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSteps = addSteps;
 const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _9;
+    var _10;
     try {
-        const userId = (_9 = req.user) === null || _9 === void 0 ? void 0 : _9._id;
+        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -876,9 +1010,9 @@ const addHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addHabit = addHabit;
 const updateHabit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _10;
+    var _11;
     try {
-        const userId = (_10 = req.user) === null || _10 === void 0 ? void 0 : _10._id;
+        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -950,9 +1084,9 @@ const updateBudget = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.updateBudget = updateBudget;
 const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _11;
+    var _12;
     try {
-        const userId = (_11 = req.user) === null || _11 === void 0 ? void 0 : _11._id;
+        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1001,9 +1135,9 @@ const addSpends = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.addSpends = addSpends;
 const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _12;
+    var _13;
     try {
-        const userId = (_12 = req.user) === null || _12 === void 0 ? void 0 : _12._id;
+        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1055,26 +1189,25 @@ const addSavings = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.addSavings = addSavings;
-const resetDailyTasks = () => __awaiter(void 0, void 0, void 0, function* () {
-    // Find daily tasks that need to be reset
-    const tasksToReset = yield task_model_1.default.find({
-        taskType: "dailytask",
-        "done.isDone": true,
-    });
-    // Reset tasks
-    tasksToReset.forEach((task) => __awaiter(void 0, void 0, void 0, function* () {
-        task.done.isDone = false;
-        task.done.doneBy = {};
-        task.done.time = "";
-        yield task.save();
-    }));
-    console.log("Daily tasks reset successfully.");
-});
-exports.resetDailyTasks = resetDailyTasks;
+// export const resetDailyTasks = async () => {
+// 	// Find daily tasks that need to be reset
+// 	const tasksToReset = await TaskModel.find({
+// 		taskType: "dailytask",
+// 		"done.isDone": true,
+// 	});
+// 	// Reset tasks
+// 	tasksToReset.forEach(async (task: any) => {
+// 		task.done.isDone = false;
+// 		task.done.doneBy = {};
+// 		task.done.time = "";
+// 		await task.save();
+// 	});
+// 	console.log("Daily tasks reset successfully.");
+// };
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _13;
+    var _14;
     try {
-        const userId = (_13 = req.user) === null || _13 === void 0 ? void 0 : _13._id;
+        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1099,9 +1232,9 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateTeam = updateTeam;
 const updateTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _14;
+    var _15;
     try {
-        const userId = (_14 = req.user) === null || _14 === void 0 ? void 0 : _14._id;
+        const userId = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1144,10 +1277,11 @@ const updateGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.updateGoal = updateGoal;
 const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _15, _16;
+    var _16, _17;
     try {
-        const userId = (_15 = req.user) === null || _15 === void 0 ? void 0 : _15._id;
-        const userName = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16.name;
+        const { type } = req.query;
+        const userId = (_16 = req.user) === null || _16 === void 0 ? void 0 : _16._id;
+        const userName = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17.name;
         if (!userId || !userName) {
             res.status(500).json({
                 isError: true,
@@ -1171,12 +1305,22 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
             };
             task.done.time = new Date().toISOString();
             yield task.save();
-            const updatedTodolist = yield getPopulatedTodoList(userId);
-            return res.status(200).json({
-                isError: false,
-                message: "Task marked as done",
-                todoList: updatedTodolist,
-            });
+            if (type == "taskList") {
+                const updatedTaskList = yield getOnlyTasksList(userId);
+                return res.status(201).json({
+                    isError: false,
+                    message: "Task updated successfully",
+                    taskList: updatedTaskList,
+                });
+            }
+            else {
+                const updatedTodolist = yield getPopulatedTodoList(userId);
+                return res.status(200).json({
+                    isError: false,
+                    message: "Task marked as done",
+                    todoList: updatedTodolist,
+                });
+            }
         }
         // If the task is already done, allow admin to update
         if (task.createdBy.creatorId.toString() === userId.toString()) {
@@ -1205,12 +1349,12 @@ const updateTaskDone = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.updateTaskDone = updateTaskDone;
 const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _17, _18;
+    var _18, _19;
     try {
         const { teamId } = req.params;
         const { message } = req.body;
-        const userId = (_17 = req.user) === null || _17 === void 0 ? void 0 : _17._id;
-        const userName = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18.name;
+        const userId = (_18 = req.user) === null || _18 === void 0 ? void 0 : _18._id;
+        const userName = (_19 = req.user) === null || _19 === void 0 ? void 0 : _19.name;
         // Check if userId and userName are present
         if (!userId || !userName) {
             return res.status(500).json({
@@ -1252,9 +1396,9 @@ const addMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.addMessage = addMessage;
 const deleteTask = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _19;
+    var _20;
     try {
-        const userId = (_19 = req.user) === null || _19 === void 0 ? void 0 : _19._id;
+        const userId = (_20 = req.user) === null || _20 === void 0 ? void 0 : _20._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,
@@ -1308,9 +1452,9 @@ const deleteGoal = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.deleteGoal = deleteGoal;
 const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _20;
+    var _21;
     try {
-        const userId = (_20 = req.user) === null || _20 === void 0 ? void 0 : _20._id;
+        const userId = (_21 = req.user) === null || _21 === void 0 ? void 0 : _21._id;
         if (!userId) {
             res.status(500).json({
                 isError: true,

@@ -15,14 +15,12 @@ const sendMail = (req, res, next) => {
     // Send email
     omniplex_mail_1.transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.error(error);
             res.status(500).json({
                 isError: true,
                 massage: "Error sending email",
             });
         }
         else {
-            console.log("Email sent: " + info.response);
             res.status(200).json({ isError: false, massage: "Email sent" });
         }
     });
