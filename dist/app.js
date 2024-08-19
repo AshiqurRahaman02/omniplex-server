@@ -11,7 +11,6 @@ const omniplex_mail_route_1 = __importDefault(require("./routes/omniplex.mail.ro
 const todolist_route_1 = __importDefault(require("./routes/todolist.route"));
 const authentication_middlewares_1 = require("./middlewares/authentication.middlewares");
 const collabcraft_route_1 = __importDefault(require("./routes/collabcraft.route"));
-const todolist_controllers_1 = require("./controllers/todolist.controllers");
 const app = (0, express_1.default)();
 // Middleware
 app.use((0, cors_1.default)({
@@ -26,5 +25,4 @@ app.use("/user", user_route_1.default);
 app.use("/mail", omniplex_mail_route_1.default);
 app.use("/todolist", authentication_middlewares_1.verifyToken, todolist_route_1.default);
 app.use("/room", authentication_middlewares_1.verifyToken, collabcraft_route_1.default);
-(0, todolist_controllers_1.scheduleDailyTaskReset)();
 exports.default = app;

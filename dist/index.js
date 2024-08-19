@@ -14,10 +14,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const database_1 = __importDefault(require("./configs/database"));
+const todolist_controllers_1 = require("./controllers/todolist.controllers");
 const PORT = process.env.PORT || 7171;
 app_1.default.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield database_1.default;
+        (0, todolist_controllers_1.scheduleDailyTaskReset)();
         console.log("Connected to Database");
     }
     catch (error) {
