@@ -142,6 +142,8 @@ const sendErrorMail = (message:string) => {
 export const scheduleDailyTaskReset = () => {
 	const timeUntilMidnight = getTimeUntilMidnight();
 
+	console.log(`Schedule daily task function called at: ${timeUntilMidnight}`)
+
 	setTimeout(() => {
 		console.log("Running daily task reset at 12 AM");
 		resetDailyTasks().then((result) => {
@@ -155,6 +157,9 @@ export const scheduleDailyTaskReset = () => {
 			console.log("Running daily task reset at 12 AM");
 			resetDailyTasks().then((result) => {
 				console.log(result.message);
+				if(result.isError){
+					sendErrorMail(result.message)
+				}
 			});
 		}, 24 * 60 * 60 * 1000);
 	}, timeUntilMidnight);
